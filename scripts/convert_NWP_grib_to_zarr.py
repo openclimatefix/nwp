@@ -467,7 +467,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     assert set(da['variable'].values) == set(NWP_VARIABLE_NAMES)
     if not (da['variable'] == NWP_VARIABLE_NAMES).all():
         logger.warning("Need to fix the order of the NWP variable names:")
-        da = da.reindex(variable=NWP_VARIABLE_NAMES)
+        da = da.reindex(variable=list(NWP_VARIABLE_NAMES))
 
     # Reverse `y` so it's top-to-bottom (so ZarrDataSource.get_example() works correctly!)
     # Adapted from:

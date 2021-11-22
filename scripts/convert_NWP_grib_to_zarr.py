@@ -83,6 +83,10 @@ logger = logging.getLogger(__name__)
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
+NWP_VARIABLE_NAMES = (
+    'cdcb', 'lcc', 'mcc', 'hcc', 'sde', 'hcct', 'dswrf', 'dlwrf', 'h', 't',
+   'r', 'dpt', 'vis', 'si10', 'wdir10', 'prmsl', 'prate')
+
 # Define geographical domain for UKV.
 # Taken from page 4 of http://cedadocs.ceda.ac.uk/1334/1/uk_model_data_sheet_lores1.pdf
 # To quote the PDF:
@@ -456,8 +460,23 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     level of parallelism.
     """
     logger.debug("Post-processing dataset...")
+    da = dataset.to_array(dim="variable", name="UKV")
+
+    # to_array looks like it can sometimes change the order of the variables.
+    # So fix the order:
+    assert set(da['variable'].values) == set(NWP_VARIABLE_NAMES)
+    if not (da['variable'] == NWP_VARIABLE_NAMES).all():
+        logger.warning("Need to fix the order of the NWP variable names:")
+        da = da.reindex(variable=NWP_VARIABLE_NAMES)
+
+    # Reverse `y` so it's top-to-bottom (so ZarrDataSource.get_example() works correctly!)
+    # Adapted from:
+    # https://stackoverflow.com/questions/54677161/xarray-reverse-an-array-along-one-coordinate
+    y_reversed = da.y[::-1]
+    da = da.reindex(y=y_reversed)
+
     return (
-        dataset.to_array(dim="variable", name="UKV")
+        da
         .to_dataset()
         .rename({"time": "init_time"})
         .chunk(
@@ -492,6 +511,9 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
         to_zarr_kwargs = dict(
             append_dim="init_time",
         )
+
+        # Check that dataset has same dimensions as the dataset on disk:
+        assert len(dataset['step']) == 37
     else:
         # Create new Zarr store.
         to_zarr_kwargs = dict(

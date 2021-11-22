@@ -126,7 +126,7 @@ VARS_TO_DELETE = (
     ),
     help=(
         "Optional.  The directory and the search pattern for the source grib files."
-        "  For example /foo/bar/*/*/*/*Wholesale[12].grib"
+        "  For example /foo/bar/*/*/*/*Wholesale[12].grib.  Should be in double quotes."
     ),
 )
 @click.option(

@@ -75,6 +75,7 @@ from typing import Optional, Union
 import cfgrib
 import click
 import numcodecs
+from numcodecs.bitround import BitRound
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -520,6 +521,7 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
             encoding={
                 "init_time": {"units": "nanoseconds since 1970-01-01"},
                 "UKV": {
+                    "filters": [BitRound(10)], # 10 bits keeps 99.99% of the information
                     "compressor": numcodecs.Blosc(cname="zstd", clevel=5),
                 },
             },

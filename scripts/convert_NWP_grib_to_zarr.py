@@ -122,7 +122,7 @@ VARS_TO_DELETE = (
 @click.option(
     "--source_grib_path_and_search_pattern",
     default=(
-        "/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/"
+        "/mnt/leonardo/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/"
         "UK_Met_Office/UKV/native/*/*/*/*Wholesale[12].grib"
     ),
     help=(
@@ -521,8 +521,8 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
             encoding={
                 "init_time": {"units": "nanoseconds since 1970-01-01"},
                 "UKV": {
-                    "filters": [BitRound(10)], # 10 bits keeps 99.99% of the information
-                    "compressor": numcodecs.Blosc(cname="zstd", clevel=5),
+                    "filters": [BitRound(9)], # 9 bits keeps 99% of the information
+                    "compressor": numcodecs.Blosc(cname="zstd", clevel=5, shuffle=numcodecs.Blosc.BITSHUFFLE),
                 },
             },
         )

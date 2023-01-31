@@ -18,6 +18,7 @@ from numcodecs.bitround import BitRound
 import numpy as np
 import pandas as pd
 import xarray as xr
+from ocf_blosc2 import Blosc2
 
 logger = logging.getLogger(__name__)
 
@@ -139,15 +140,20 @@ def main(
 
     # options
     UKV_dict = {
-                "compressor": numcodecs.Blosc(cname="zstd", clevel=5, shuffle=numcodecs.Blosc.BITSHUFFLE),
+                "compressor": Blosc2(cname="zstd", clevel=5),
             }
 
     if precision == 16:
-        source_dataset.data = source_dataset.astype(np.float16).data
-        # Need to make sure between 0 and 1
-        #source_dataset["data"] = source_dataset.data * 1023
-        #dataset = source_dataset.clip(min=0, max=1023)
-        #dataset["data"] = (dataset.astype(np.float32).data / 4.0).round().astype(np.uint8)
+        source_dataset["UKV"] = source_dataset.astype(np.float16)["UKV"]
+
+    # Reset objects, see https://github.com/pydata/xarray/issues/3476
+    for v in list(source_dataset.coords.keys()):
+        if source_dataset.coords[v].dtype == object:
+            source_dataset[v].encoding.clear()
+
+    for v in list(source_dataset.variables.keys()):
+        if source_dataset[v].dtype == object:
+            source_dataset[v].encoding.clear()
 
     if bitround is not None:
         UKV_dict["filters"] = [BitRound(bitround)]  # 9 bits keeps 99% of the information
@@ -161,7 +167,7 @@ def main(
 
     logger.debug(f"Source Dataset Output: \n {source_dataset}")
     # The main event!
-    source_dataset.to_zarr(destination_zarr_path, **to_zarr_kwargs, compute=True)
+    source_dataset.to_zarr(destination_zarr_path, **to_zarr_kwargs, compute=True, mode="w")
 
 def configure_logging(log_level: str, log_filename: str) -> None:
     """Configure logger for this script.

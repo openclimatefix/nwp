@@ -79,6 +79,7 @@ from numcodecs.bitround import BitRound
 import numpy as np
 import pandas as pd
 import xarray as xr
+from ocf_blosc2 import Blosc2
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ VARS_TO_DELETE = (
 @click.option(
     "--source_grib_path_and_search_pattern",
     default=(
-        "/mnt/leonardo/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/"
+        "/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/"
         "UK_Met_Office/UKV/native/*/*/*/*Wholesale[12].grib"
     ),
     help=(
@@ -202,6 +203,8 @@ def main(
     map_datetime_to_grib_filename = select_grib_filenames_still_to_process(
         map_datetime_to_grib_filename, destination_zarr_path
     )
+
+    # Sorted index of datetimes
 
     # The main event!
     process_grib_files_in_parallel(
@@ -483,7 +486,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
         .chunk(
             {
                 "init_time": 1,
-                "step": 1,
+                "step": 37,
                 "y": len(dataset.y) // 2,
                 "x": len(dataset.x) // 2,
                 "variable": -1,
@@ -521,12 +524,11 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
             encoding={
                 "init_time": {"units": "nanoseconds since 1970-01-01"},
                 "UKV": {
-                    "filters": [BitRound(9)], # 9 bits keeps 99% of the information
-                    "compressor": numcodecs.Blosc(cname="zstd", clevel=5, shuffle=numcodecs.Blosc.BITSHUFFLE),
+                    "compressor": Blosc2(cname="zstd", clevel=5),
                 },
             },
         )
-
+    dataset["UKV"] = dataset.astype(np.float16)["UKV"]
     dataset.to_zarr(zarr_path, **to_zarr_kwargs)
 
 
@@ -564,7 +566,7 @@ def load_grib_files_for_single_nwp_init_time(
     return dataset_for_nwp_init_datetime
 
 
-def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> None:
+def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> xr.Dataset:
     """A wrapper arouund load_grib_files_for_single_nwp_init_time but with locking logic.
 
     See the docstring at the top of this script for more information about how we use
@@ -586,53 +588,42 @@ def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> None:
                 log the time taken so far, and the number of seconds per task.
     """
     full_grib_filenames = task["row"]
-    previous_lock = task["previous_lock"]
-    next_lock = task["next_lock"]
     task_number = task["task_number"]
     destination_zarr_path = task["destination_zarr_path"]
     start_time = task["start_time"]
 
-    TIMEOUT_SECONDS = 120
     dataset = load_grib_files_for_single_nwp_init_time(full_grib_filenames, task_number=task_number)
     if dataset is not None:
         logger.debug(f"Task #{task_number}: Before previous_lock.acquire()")
         # Block waiting for previous processes to complete.  This ensures that the reader processes
         # don't get ahead of the writing process; and ensures that only one process writes to the
         # Zarr at once; and ensures that data is appended in order of the NWP init time.
-        previous_lock.acquire(blocking=True, timeout=TIMEOUT_SECONDS)
-        logger.debug(f"Task #{task_number}: After previous_lock.acquire()")
-        logger.debug(
-            f"Task #{task_number}: About to append NWP init time {dataset.init_time.values}"
-            f" to {destination_zarr_path}"
-        )
-        append_to_zarr(dataset, destination_zarr_path)
         logger.debug(
             f"Task #{task_number}: Finished appending NWP init time {dataset.init_time.values}"
             f" to {destination_zarr_path}"
         )
+        time_taken = pd.Timestamp.now() - start_time
+        seconds_per_task = (time_taken / (task_number+1)).total_seconds()
+        logger.debug(
+            f"{task_number:,d} tasks (NWP init timesteps) completed in {time_taken}"
+            f". That's {seconds_per_task:,.1f} seconds per NWP init timestep."
+        )
+        return dataset
     else:
         logger.warning(
             f"Task #{task_number}: Dataset is None!  Grib filenames = {full_grib_filenames}"
         )
 
-    # Allow the next process to append to the Zarr:
-    next_lock.release()
-
     # Calculate timings.
-    time_taken = pd.Timestamp.now() - start_time
-    seconds_per_task = (time_taken / (task_number + 1)).total_seconds()
-    logger.debug(
-        f"{task_number + 1:,d} tasks (NWP init timesteps) completed in {time_taken}"
-        f". That's {seconds_per_task:,.1f} seconds per NWP init timestep."
-    )
 
 
-def load_grib_files_and_save_zarr_with_lock_wrapper(task: dict[str, object]) -> None:
+
+def load_grib_files_and_save_zarr_with_lock_wrapper(task: dict[str, object]) -> xr.Dataset:
     """Simple wrapper around load_grib_files_and_save_zarr_with_lock to catch & log exceptions."""
     try:
         task_number = task["task_number"]
         full_grib_filenames = task["row"]
-        load_grib_files_and_save_zarr_with_lock(task)
+        return load_grib_files_and_save_zarr_with_lock(task)
     except Exception:
         logger.exception(
             f"Exception raised when processing task number {task_number},"
@@ -646,50 +637,28 @@ def process_grib_files_in_parallel(
     destination_zarr_path: Path,
     n_processes: int,
 ) -> None:
-    """Process grib files in parallel."""
-    # To pass the shared Lock into the worker processes, we must use a Manager():
-    multiprocessing_manager = multiprocessing.Manager()
-
-    # Make note of when this script started.  This is used to compute how many
-    # tasks the script completes in a given time.
     start_time = pd.Timestamp.now()
 
     # Create a list of `tasks` which include the grib filenames, the prev_lock & next_lock:
     tasks: list[dict[str, object]] = []
-    previous_lock = multiprocessing_manager.Lock()  # Lock starts in a "released" state.
     for task_number, (_, row) in enumerate(map_datetime_to_grib_filename.groupby(level=0)):
-        next_lock = multiprocessing_manager.Lock()
-        next_lock.acquire()
         tasks.append(
             dict(
                 row=row,
-                previous_lock=previous_lock,
-                next_lock=next_lock,
                 task_number=task_number,
                 destination_zarr_path=destination_zarr_path,
                 start_time=start_time,
             )
         )
-        previous_lock = next_lock
 
     logger.info(f"About to process {len(tasks):,d} tasks using {n_processes} processes.")
 
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
-        result_iterator = pool.map(
-            func=load_grib_files_and_save_zarr_with_lock_wrapper, iterable=tasks, chunksize=1
-        )
-
-    # Loop through the results to trigger any exceptions:
-    logger.debug(
-        "Almost finished! Now running through pool.map iterator to raise any final exceptions."
-    )
-    try:
-        for iterator in result_iterator:
-            pass
-    except Exception:
-        logger.exception()
-        raise
+        for ds in pool.imap(
+            load_grib_files_and_save_zarr_with_lock_wrapper, tasks,
+        ):
+            append_to_zarr(ds, destination_zarr_path)
 
     logger.info("Done!")
 

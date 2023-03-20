@@ -137,8 +137,7 @@ def process_model_files(
         f"{ds_atmos.time.dt.month.values}/"
         f"{ds_atmos.time.dt.day.values}/"
         f"{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}"
-        f"_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip"
-        in files
+        f"_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip" in files
     ):
         return None
 
@@ -207,10 +206,10 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
             api.upload_file(
                 path_or_fileobj=zarr_path,
                 path_in_repo=f"data/{dataset_xr.time.dt.year.values}/"
-                             f"{dataset_xr.time.dt.month.values}/"
-                             f"{dataset_xr.time.dt.day.values}/"
-                             f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
-                             f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
+                f"{dataset_xr.time.dt.month.values}/"
+                f"{dataset_xr.time.dt.day.values}/"
+                f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
+                f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
                 repo_id="openclimatefix/dwd-icon-global",
                 repo_type="dataset",
             )

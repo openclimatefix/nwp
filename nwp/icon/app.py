@@ -8,8 +8,7 @@ import zarr
 from huggingface_hub import HfApi
 from ocf_blosc2 import Blosc2
 
-from icon.consts import *
-from icon.utils import get_dset
+from nwp.icon.utils import get_dset
 
 api = HfApi()
 

@@ -1,25 +1,28 @@
 import os
-import xarray as xr
+import shutil
 from glob import glob
-from ocf_blosc2 import Blosc2
+
+import click
+import xarray as xr
+import zarr
 from huggingface_hub import HfApi
 from ocf_blosc2 import Blosc2
-import zarr
-import shutil
-import argparse
+
 from icon.consts import *
 from icon.utils import get_dset
-import click
 
 api = HfApi()
 
 
 def download_model_files(runs=None, parent_folder=None, model="global"):
-    """
-
-    """
+    """ """
     if runs is None:
-        runs = ["00", "06", "12", "18", ]
+        runs = [
+            "00",
+            "06",
+            "12",
+            "18",
+        ]
     if model == "global":
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
@@ -41,14 +44,22 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         not_done = True
         while not_done:
             try:
-                get_dset(vars_2d=vars_2d, vars_3d=vars_3d, invarient=invariant, folder=run_folder, run=run,
-                         f_times=f_steps)
+                get_dset(
+                    vars_2d=vars_2d,
+                    vars_3d=vars_3d,
+                    invarient=invariant,
+                    folder=run_folder,
+                    run=run,
+                    f_times=f_steps,
+                )
                 not_done = False
             except:
                 continue
 
 
-def process_model_files(folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global"):
+def process_model_files(
+    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global"
+):
     if model == "global":
         hf_path = "openclimatefix/dwd-icon-global"
         var_base = "icon_global_icosahedral"
@@ -64,10 +75,12 @@ def process_model_files(folder, var_3d_list=None, var_2d_list=None, invariant_li
     if invariant_list is not None:
         lon_ds = xr.open_dataset(
             list(glob(f"{folder}/icon_global_icosahedral_time-invariant_*_CLON.grib2"))[0],
-            engine="cfgrib")
+            engine="cfgrib",
+        )
         lat_ds = xr.open_dataset(
             list(glob(f"{folder}/icon_global_icosahedral_time-invariant_*_CLAT.grib2"))[0],
-            engine="cfgrib")
+            engine="cfgrib",
+        )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
     else:
@@ -76,13 +89,24 @@ def process_model_files(folder, var_3d_list=None, var_2d_list=None, invariant_li
     datasets = []
     for var_3d in var_3d_list:
         print(var_3d)
-        paths = [list(glob(
-            f"{folder}/{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"))
-            for s in range(73)]
+        paths = [
+            list(
+                glob(
+                    f"{folder}/{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"
+                )
+            )
+            for s in range(73)
+        ]
         try:
             ds = xr.concat(
-                [xr.open_mfdataset(p, engine="cfgrib", combine="nested", concat_dim="isobaricInhPa").sortby(
-                    "isobaricInhPa") for p in paths], dim="step").sortby("step")
+                [
+                    xr.open_mfdataset(
+                        p, engine="cfgrib", combine="nested", concat_dim="isobaricInhPa"
+                    ).sortby("isobaricInhPa")
+                    for p in paths
+                ],
+                dim="step",
+            ).sortby("step")
         except Exception as e:
             print(e)
             continue
@@ -97,16 +121,26 @@ def process_model_files(folder, var_3d_list=None, var_2d_list=None, invariant_li
     ds_atmos = xr.merge(datasets)
     print(ds_atmos)
     files = api.list_repo_files(hf_path, repo_type="dataset")
-    if f"data/{ds_atmos.time.dt.year.values}/{ds_atmos.time.dt.month.values}/{ds_atmos.time.dt.day.values}/{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip" in files:
+    if (
+        f"data/{ds_atmos.time.dt.year.values}/{ds_atmos.time.dt.month.values}/{ds_atmos.time.dt.day.values}/{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip"
+        in files
+    ):
         return None
 
     total_dataset = []
     for var_2d in var_2d_list:
         print(var_2d)
         try:
-            ds = xr.open_mfdataset(
-                f"{folder}/{var_base}_single-level_*_*_{var_2d.upper()}.grib2",
-                engine="cfgrib", combine="nested", concat_dim="step").sortby("step").drop_vars("valid_time")
+            ds = (
+                xr.open_mfdataset(
+                    f"{folder}/{var_base}_single-level_*_*_{var_2d.upper()}.grib2",
+                    engine="cfgrib",
+                    combine="nested",
+                    concat_dim="step",
+                )
+                .sortby("step")
+                .drop_vars("valid_time")
+            )
         except Exception as e:
             print(e)
             continue
@@ -133,14 +167,23 @@ def process_model_files(folder, var_3d_list=None, var_2d_list=None, invariant_li
 def upload_to_hf(dataset_xr, folder, model="global", run="00"):
     zarr_path = f"{folder}/{run}.zarr.zip"
     if model == "global":
-        chunking = {"step": 37, "values": 122500, "isobaricInhPa": -1, }
+        chunking = {
+            "step": 37,
+            "values": 122500,
+            "isobaricInhPa": -1,
+        }
     else:
-        chunking = {"step": 37, "latitude": 326, "longitude": 350, "isobaricInhPa": -1, }
+        chunking = {
+            "step": 37,
+            "latitude": 326,
+            "longitude": 350,
+            "isobaricInhPa": -1,
+        }
     encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
-            zarr_path,
-            mode="w",
+        zarr_path,
+        mode="w",
     ) as store:
         dataset_xr.chunk(chunking).to_zarr(store, encoding=encoding, compute=True)
     done = False
@@ -162,12 +205,8 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
 @click.command()
 @click.option(
     "--model",
-    default=(
-        "global"
-    ),
-    help=(
-        "Model type, either 'global' or 'eu' "
-    ),
+    default=("global"),
+    help=("Model type, either 'global' or 'eu' "),
 )
 @click.option(
     "--folder",
@@ -177,12 +216,10 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
 @click.option(
     "--run",
     default=None,
-    help=(
-        "Run number to use, one of '00', '06', '12', '18', or leave off for all."
-    ),
+    help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
 def main(
-     model: str,
+    model: str,
     folder: str,
     run: str,
 ):
@@ -190,7 +227,12 @@ def main(
     if run is not None:
         run = [run]
     elif run is None:
-        run = ["00", "06", "12", "18", ]
+        run = [
+            "00",
+            "06",
+            "12",
+            "18",
+        ]
     print(f"------------------- Downloading Model Files for: {run=}")
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:

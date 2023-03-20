@@ -74,8 +74,6 @@ from typing import Optional, Union
 
 import cfgrib
 import click
-import numcodecs
-from numcodecs.bitround import BitRound
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -86,8 +84,24 @@ logger = logging.getLogger(__name__)
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
 NWP_VARIABLE_NAMES = (
-    'cdcb', 'lcc', 'mcc', 'hcc', 'sde', 'hcct', 'dswrf', 'dlwrf', 'h', 't',
-   'r', 'dpt', 'vis', 'si10', 'wdir10', 'prmsl', 'prate')
+    "cdcb",
+    "lcc",
+    "mcc",
+    "hcc",
+    "sde",
+    "hcct",
+    "dswrf",
+    "dlwrf",
+    "h",
+    "t",
+    "r",
+    "dpt",
+    "vis",
+    "si10",
+    "wdir10",
+    "prmsl",
+    "prate",
+)
 
 # Define geographical domain for UKV.
 # Taken from page 4 of http://cedadocs.ceda.ac.uk/1334/1/uk_model_data_sheet_lores1.pdf
@@ -468,8 +482,8 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
 
     # to_array looks like it can sometimes change the order of the variables.
     # So fix the order:
-    assert set(da['variable'].values) == set(NWP_VARIABLE_NAMES)
-    if not (da['variable'] == NWP_VARIABLE_NAMES).all():
+    assert set(da["variable"].values) == set(NWP_VARIABLE_NAMES)
+    if not (da["variable"] == NWP_VARIABLE_NAMES).all():
         logger.warning("Need to fix the order of the NWP variable names:")
         da = da.reindex(variable=list(NWP_VARIABLE_NAMES))
 
@@ -480,8 +494,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     da = da.reindex(y=y_reversed)
 
     return (
-        da
-        .to_dataset()
+        da.to_dataset()
         .rename({"time": "init_time"})
         .chunk(
             {
@@ -517,7 +530,7 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
         )
 
         # Check that dataset has same dimensions as the dataset on disk:
-        assert len(dataset['step']) == 37
+        assert len(dataset["step"]) == 37
     else:
         # Create new Zarr store.
         to_zarr_kwargs = dict(
@@ -603,7 +616,7 @@ def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> xr.Datas
             f" to {destination_zarr_path}"
         )
         time_taken = pd.Timestamp.now() - start_time
-        seconds_per_task = (time_taken / (task_number+1)).total_seconds()
+        seconds_per_task = (time_taken / (task_number + 1)).total_seconds()
         logger.debug(
             f"{task_number:,d} tasks (NWP init timesteps) completed in {time_taken}"
             f". That's {seconds_per_task:,.1f} seconds per NWP init timestep."
@@ -615,7 +628,6 @@ def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> xr.Datas
         )
 
     # Calculate timings.
-
 
 
 def load_grib_files_and_save_zarr_with_lock_wrapper(task: dict[str, object]) -> xr.Dataset:
@@ -656,7 +668,8 @@ def process_grib_files_in_parallel(
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
         for ds in pool.imap(
-            load_grib_files_and_save_zarr_with_lock_wrapper, tasks,
+            load_grib_files_and_save_zarr_with_lock_wrapper,
+            tasks,
         ):
             append_to_zarr(ds, destination_zarr_path)
 

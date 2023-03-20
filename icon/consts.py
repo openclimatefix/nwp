@@ -70,7 +70,10 @@ GLOBAL_VAR2D_LIST = [
 
 GLOBAL_VAR3D_LIST = ["clc", "fi", "p", "qv", "relhum", "t", "tke", "u", "v", "w"]
 
-GLOBAL_INVARIENT_LIST = ["clat", "clon", ]
+GLOBAL_INVARIENT_LIST = [
+    "clat",
+    "clon",
+]
 
 GLOBAL_PRESSURE_LEVELS = [
     1000,
@@ -179,4 +182,3 @@ EU_PRESSURE_LEVELS = [
     50,
     30,
 ]
-

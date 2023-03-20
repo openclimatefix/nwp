@@ -1,9 +1,10 @@
-from datetime import datetime
-from multiprocessing import Pool, cpu_count
-from itertools import repeat
-import requests
 import bz2
 import os
+from datetime import datetime
+from itertools import repeat
+from multiprocessing import Pool, cpu_count
+
+import requests
 
 
 def get_run(run):
@@ -12,13 +13,13 @@ def get_run(run):
 
 
 def find_file_name(
-        vars_2d=None,
-        vars_3d=None,
-        invarient=None,
-        f_times=0,
-        base_url="https://opendata.dwd.de/weather/nwp",
-        model_url="icon/grib",
-        var_url_base="icon_global_icosahedral"
+    vars_2d=None,
+    vars_3d=None,
+    invarient=None,
+    f_times=0,
+    base_url="https://opendata.dwd.de/weather/nwp",
+    model_url="icon/grib",
+    var_url_base="icon_global_icosahedral",
 ):
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
@@ -70,7 +71,8 @@ def find_file_name(
 
 def download_extract_files(urls, folder):
     """Given a list of urls download and bunzip2 them.
-    Return a list of the path of the extracted files"""
+    Return a list of the path of the extracted files
+    """
 
     if type(urls) is list:
         urls_list = urls
@@ -110,10 +112,19 @@ def download_extract_url(url_and_folder):
     return extracted_files
 
 
-def get_dset(vars_2d=None, vars_3d=None, invarient=None, f_times=0, run="00", folder="/mnt/storage_ssd_4tb/DWD/"):
+def get_dset(
+    vars_2d=None,
+    vars_3d=None,
+    invarient=None,
+    f_times=0,
+    run="00",
+    folder="/mnt/storage_ssd_4tb/DWD/",
+):
     if vars_2d or vars_3d:
         date_string, _ = get_run(run)
-        urls = find_file_name(vars_2d=vars_2d, vars_3d=vars_3d, invarient=invarient, f_times=f_times)
+        urls = find_file_name(
+            vars_2d=vars_2d, vars_3d=vars_3d, invarient=invarient, f_times=f_times
+        )
         downloaded_files = download_extract_files(urls, folder)
 
     return downloaded_files

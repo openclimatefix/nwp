@@ -1,16 +1,16 @@
-import os
-import xarray as xr
-from datetime import datetime
-import requests
 import bz2
-from multiprocessing import Pool, cpu_count
-from glob import glob
-from ocf_blosc2 import Blosc2
-from huggingface_hub import HfApi
-from ocf_blosc2 import Blosc2
-import zarr
+import os
 import shutil
 import time
+from datetime import datetime
+from glob import glob
+from multiprocessing import Pool, cpu_count
+
+import requests
+import xarray as xr
+import zarr
+from huggingface_hub import HfApi
+from ocf_blosc2 import Blosc2
 
 api = HfApi()
 files = api.list_repo_files("openclimatefix/dwd-icon-eu", repo_type="dataset")
@@ -105,14 +105,23 @@ pressure_levels = [
 while True:
     now = datetime.now()
     if now.hour in [3, 9, 15, 21]:
-        for run in ["00", "06", "12", "18",]:
-            if not os.path.exists(f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/"):
-                os.mkdir(f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/")
+        for run in [
+            "00",
+            "06",
+            "12",
+            "18",
+        ]:
+            if not os.path.exists(
+                f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/"
+            ):
+                os.mkdir(
+                    f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/"
+                )
+
             def get_run():
                 now = datetime.now()
 
                 return now.strftime("%Y%m%d") + run, run
-
 
             def find_file_name(
                 vars_2d=None,
@@ -188,10 +197,10 @@ while True:
 
                 return urls
 
-
             def download_extract_files(urls):
                 """Given a list of urls download and bunzip2 them.
-                Return a list of the path of the extracted files"""
+                Return a list of the path of the extracted files
+                """
 
                 if type(urls) is list:
                     urls_list = urls
@@ -212,8 +221,10 @@ while True:
 
                 return results
 
-
-            def download_extract_url(url, folder=f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/"):
+            def download_extract_url(
+                url,
+                folder=f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/",
+            ):
                 filename = folder + os.path.basename(url).replace(".bz2", "")
 
                 if os.path.exists(filename):
@@ -229,7 +240,6 @@ while True:
 
                 return extracted_files
 
-
             def get_dset(vars_2d=[], vars_3d=[], f_times=0):
                 if vars_2d or vars_3d:
                     date_string, _ = get_run()
@@ -237,7 +247,6 @@ while True:
                     fils = download_extract_files(urls)
 
                 return fils
-
 
             f_steps = list(range(0, 73))
             vars_3d_download = var_3d_list
@@ -258,15 +267,32 @@ while True:
 
         # After downloading everything, then process and upload
 
-        for run in ["00", "06", "12", "18", ]:
+        for run in [
+            "00",
+            "06",
+            "12",
+            "18",
+        ]:
             datasets = []
             for var_3d in var_3d_list:
-                paths = [list(glob(
-                    f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/icon-eu_europe_regular-lat-lon_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"))
-                         for s in range(73)]
+                paths = [
+                    list(
+                        glob(
+                            f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/icon-eu_europe_regular-lat-lon_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"
+                        )
+                    )
+                    for s in range(73)
+                ]
                 try:
-                    ds = xr.concat([xr.open_mfdataset(p, engine="cfgrib", combine="nested", concat_dim="isobaricInhPa").sortby(
-                        "isobaricInhPa") for p in paths], dim="step").sortby("step")
+                    ds = xr.concat(
+                        [
+                            xr.open_mfdataset(
+                                p, engine="cfgrib", combine="nested", concat_dim="isobaricInhPa"
+                            ).sortby("isobaricInhPa")
+                            for p in paths
+                        ],
+                        dim="step",
+                    ).sortby("step")
                 except Exception as e:
                     print(e)
                     continue
@@ -281,7 +307,10 @@ while True:
                 print(ds)
             ds_atmos = xr.merge(datasets)
             files = api.list_repo_files("openclimatefix/dwd-icon-eu", repo_type="dataset")
-            if f"data/{ds_atmos.time.dt.year.values}/{ds_atmos.time.dt.month.values}/{ds_atmos.time.dt.day.values}/{ds_atmos.time.dt.year.values}{ds_atmos.time.dt.month.values}{ds_atmos.time.dt.day.values}_{ds_atmos.time.dt.hour.values}.zarr.zip" in files:
+            if (
+                f"data/{ds_atmos.time.dt.year.values}/{ds_atmos.time.dt.month.values}/{ds_atmos.time.dt.day.values}/{ds_atmos.time.dt.year.values}{ds_atmos.time.dt.month.values}{ds_atmos.time.dt.day.values}_{ds_atmos.time.dt.hour.values}.zarr.zip"
+                in files
+            ):
                 continue
 
             total_dataset = []
@@ -289,9 +318,16 @@ while True:
                 datasets = []
                 print(var_2d)
                 try:
-                    ds = xr.open_mfdataset(
-                        f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/icon-eu_europe_regular-lat-lon_single-level_*_*_{var_2d.upper()}.grib2",
-                        engine="cfgrib", combine="nested", concat_dim="step").sortby("step").drop_vars("valid_time")
+                    ds = (
+                        xr.open_mfdataset(
+                            f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/icon-eu_europe_regular-lat-lon_single-level_*_*_{var_2d.upper()}.grib2",
+                            engine="cfgrib",
+                            combine="nested",
+                            concat_dim="step",
+                        )
+                        .sortby("step")
+                        .drop_vars("valid_time")
+                    )
                 except Exception as e:
                     print(e)
                     continue
@@ -314,12 +350,17 @@ while True:
             encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in ds.data_vars}
             encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
             with zarr.ZipStore(
-                    f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}.zarr.zip",
-                    mode="w",
+                f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}.zarr.zip",
+                mode="w",
             ) as store:
-                ds.chunk({"step": 37, "latitude": 326, "longitude": 350, "isobaricInhPa": -1, }).to_zarr(store,
-                                                                                                         encoding=encoding,
-                                                                                                    compute=True)
+                ds.chunk(
+                    {
+                        "step": 37,
+                        "latitude": 326,
+                        "longitude": 350,
+                        "isobaricInhPa": -1,
+                    }
+                ).to_zarr(store, encoding=encoding, compute=True)
             done = False
             while not done:
                 try:
@@ -330,11 +371,14 @@ while True:
                         repo_type="dataset",
                     )
                     done = True
-                    shutil.rmtree(f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/")
-                    os.remove(f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}.zarr.zip")
+                    shutil.rmtree(
+                        f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}/"
+                    )
+                    os.remove(
+                        f"/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/DWD/ICON_EU/{run}.zarr.zip"
+                    )
                 except Exception as e:
                     print(e)
             del ds
             del ds_atmos
-        time.sleep(60*60*1) # 1 hour wait once done
-
+        time.sleep(60 * 60 * 1)  # 1 hour wait once done

@@ -224,6 +224,7 @@ def main(
     run: str,
 ):
     """The entry point into the script."""
+    assert model in ["global", "eu"]
     if run is not None:
         run = [run]
     elif run is None:
@@ -233,13 +234,13 @@ def main(
             "12",
             "18",
         ]
-    print(f"------------------- Downloading Model Files for: {run=}")
+    print(f"------------------- Downloading Model Files for: {model=} {run=}")
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:
-        print(f"--------------------- Processing Model Files For {r}")
+        print(f"--------------------- Processing Model Files For {model=} {r}")
         ds = process_model_files(folder=folder, model=model, run=r)
         if ds is not None:
-            print(f"--------------------- Uploading to HuggingFace Run: {r}")
+            print(f"--------------------- Uploading to HuggingFace Run: {model=} {r}")
             upload_to_hf(ds, folder=folder, model=model, run=r)
 
 

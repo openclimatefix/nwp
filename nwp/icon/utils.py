@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
-from typing import Tuple, Any
 
 import requests
 

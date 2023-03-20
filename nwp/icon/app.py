@@ -200,6 +200,7 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
         except Exception as e:
             print(e)
 
+
 def remove_files(folder: str) -> None:
     """
     Remove files in folder
@@ -211,6 +212,7 @@ def remove_files(folder: str) -> None:
         None
     """
     shutil.rmtree(folder)
+
 
 @click.command()
 @click.option(
@@ -233,12 +235,7 @@ def remove_files(folder: str) -> None:
     default=False,
     help=("Whether to delete the run foldder files or not"),
 )
-def main(
-    model: str,
-    folder: str,
-    run: str,
-    delete: bool
-):
+def main(model: str, folder: str, run: str, delete: bool):
     """The entry point into the script."""
     assert model in ["global", "eu"]
     if run is not None:

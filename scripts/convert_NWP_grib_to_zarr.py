@@ -254,6 +254,7 @@ def filter_eccodes_logging():
 
     Filter out this warning because it is not useful, and just adds noise to the log.
     """
+
     # The warning originates from here:
     # https://github.com/ecmwf/cfgrib/blob/master/cfgrib/dataset.py#L402
     class FilterEccodesWarning(logging.Filter):

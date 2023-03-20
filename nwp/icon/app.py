@@ -8,8 +8,16 @@ import zarr
 from huggingface_hub import HfApi
 from ocf_blosc2 import Blosc2
 
+from nwp.icon.consts import (
+    EU_PRESSURE_LEVELS,
+    EU_VAR2D_LIST,
+    EU_VAR3D_LIST,
+    GLOBAL_INVARIENT_LIST,
+    GLOBAL_PRESSURE_LEVELS,
+    GLOBAL_VAR2D_LIST,
+    GLOBAL_VAR3D_LIST,
+)
 from nwp.icon.utils import get_dset
-from nwp.icon.consts import GLOBAL_VAR2D_LIST, GLOBAL_INVARIENT_LIST, GLOBAL_VAR3D_LIST, GLOBAL_PRESSURE_LEVELS, EU_PRESSURE_LEVELS, EU_VAR2D_LIST, EU_VAR3D_LIST
 
 api = HfApi()
 

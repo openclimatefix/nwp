@@ -200,6 +200,17 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
         except Exception as e:
             print(e)
 
+def remove_files(folder: str) -> None:
+    """
+    Remove files in folder
+
+    Args:
+        folder: Folder to delete
+
+    Returns:
+        None
+    """
+    shutil.rmtree(folder)
 
 @click.command()
 @click.option(
@@ -217,10 +228,16 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
     default=None,
     help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
+@click.option(
+    "--delete",
+    default=False,
+    help=("Whether to delete the run foldder files or not"),
+)
 def main(
     model: str,
     folder: str,
     run: str,
+    delete: bool
 ):
     """The entry point into the script."""
     assert model in ["global", "eu"]
@@ -233,6 +250,10 @@ def main(
             "12",
             "18",
         ]
+    if delete:
+        print(f"----------------- Removing Model Files for : {model=} {run=}")
+        for r in run:
+            remove_files(f"{folder}/{r}")
     print(f"------------------- Downloading Model Files for: {model=} {run=}")
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:
@@ -241,6 +262,10 @@ def main(
         if ds is not None:
             print(f"--------------------- Uploading to HuggingFace Run: {model=} {r}")
             upload_to_hf(ds, folder=folder, model=model, run=r)
+    if delete:
+        print(f"---------------------- Removing Model Files for : {model=} {run=}")
+        for r in run:
+            remove_files(f"{folder}/{r}")
 
 
 if __name__ == "__main__":

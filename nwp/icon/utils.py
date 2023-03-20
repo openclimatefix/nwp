@@ -1,13 +1,24 @@
+"""Utilities for downloading the DWD ICON models"""
 import bz2
 import os
 from datetime import datetime
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
+from typing import Tuple, Any
 
 import requests
 
 
-def get_run(run):
+def get_run(run: str) -> tuple[str | str, str]:
+    """
+    Get run name
+
+    Args:
+        run: Run number
+
+    Returns:
+        Run date and run number
+    """
     now = datetime.now()
     return now.strftime("%Y%m%d") + run, run
 
@@ -20,7 +31,7 @@ def find_file_name(
     base_url="https://opendata.dwd.de/weather/nwp",
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
-):
+) -> None:
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
     - vars_2d, a list of 2d variables to download, e.g. ['t_2m']
@@ -69,7 +80,7 @@ def find_file_name(
             )
 
 
-def download_extract_files(urls, folder):
+def download_extract_files(urls: list, folder: str) -> list[str]:
     """Given a list of urls download and bunzip2 them.
     Return a list of the path of the extracted files
     """
@@ -95,6 +106,15 @@ def download_extract_files(urls, folder):
 
 
 def download_extract_url(url_and_folder):
+    """
+    Download and extract url if file isn't already downloaded
+
+    Args:
+        url_and_folder: Tuple of URL and folder
+
+    Returns:
+
+    """
     url, folder = url_and_folder
     filename = folder + os.path.basename(url).replace(".bz2", "")
 

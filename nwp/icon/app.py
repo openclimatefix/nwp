@@ -42,7 +42,8 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         vars_3d = [v + "@" + str(p) for v in var_3d_list for p in pressure_levels]
         vars_2d = var_2d_list
         not_done = True
-        while not_done:
+        tries = 0
+        while not_done and tries < 10:
             try:
                 get_dset(
                     vars_2d=vars_2d,
@@ -53,6 +54,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
                     f_times=f_steps,
                 )
                 not_done = False
+                tries += 1
             except:
                 continue
 

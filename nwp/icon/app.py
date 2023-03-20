@@ -53,6 +53,8 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         tries = 0
         while not_done and tries < 10:
             try:
+                tries += 1
+                print(f"Tries: {tries}")
                 get_dset(
                     vars_2d=vars_2d,
                     vars_3d=vars_3d,
@@ -62,7 +64,6 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
                     f_times=f_steps,
                 )
                 not_done = False
-                tries += 1
             except:
                 continue
 
@@ -132,7 +133,11 @@ def process_model_files(
     print(ds_atmos)
     files = api.list_repo_files(hf_path, repo_type="dataset")
     if (
-        f"data/{ds_atmos.time.dt.year.values}/{ds_atmos.time.dt.month.values}/{ds_atmos.time.dt.day.values}/{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip"
+        f"data/{ds_atmos.time.dt.year.values}/"
+        f"{ds_atmos.time.dt.month.values}/"
+        f"{ds_atmos.time.dt.day.values}/"
+        f"{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}"
+        f"_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip"
         in files
     ):
         return None
@@ -201,7 +206,11 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
         try:
             api.upload_file(
                 path_or_fileobj=zarr_path,
-                path_in_repo=f"data/{dataset_xr.time.dt.year.values}/{dataset_xr.time.dt.month.values}/{dataset_xr.time.dt.day.values}/{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
+                path_in_repo=f"data/{dataset_xr.time.dt.year.values}/"
+                             f"{dataset_xr.time.dt.month.values}/"
+                             f"{dataset_xr.time.dt.day.values}/"
+                             f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
+                             f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
                 repo_id="openclimatefix/dwd-icon-global",
                 repo_type="dataset",
             )

@@ -58,7 +58,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
 
 
 def process_model_files(
-    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global"
+    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00"
 ):
     if model == "global":
         hf_path = "openclimatefix/dwd-icon-global"
@@ -74,11 +74,11 @@ def process_model_files(
         invariant_list = None
     if invariant_list is not None:
         lon_ds = xr.open_dataset(
-            list(glob(f"{folder}/icon_global_icosahedral_time-invariant_*_CLON.grib2"))[0],
+            list(glob(f"{folder}/{run}/icon_global_icosahedral_time-invariant_*_CLON.grib2"))[0],
             engine="cfgrib",
         )
         lat_ds = xr.open_dataset(
-            list(glob(f"{folder}/icon_global_icosahedral_time-invariant_*_CLAT.grib2"))[0],
+            list(glob(f"{folder}/{run}/icon_global_icosahedral_time-invariant_*_CLAT.grib2"))[0],
             engine="cfgrib",
         )
         lons = lon_ds.tlon.values
@@ -92,7 +92,7 @@ def process_model_files(
         paths = [
             list(
                 glob(
-                    f"{folder}/{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"
+                    f"{folder}/{run}/{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"
                 )
             )
             for s in range(73)
@@ -133,7 +133,7 @@ def process_model_files(
         try:
             ds = (
                 xr.open_mfdataset(
-                    f"{folder}/{var_base}_single-level_*_*_{var_2d.upper()}.grib2",
+                    f"{folder}/{run}/{var_base}_single-level_*_*_{var_2d.upper()}.grib2",
                     engine="cfgrib",
                     combine="nested",
                     concat_dim="step",
@@ -236,12 +236,11 @@ def main(
     print(f"------------------- Downloading Model Files for: {run=}")
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:
-        run_folder = f"{folder}/{r}/"
         print(f"--------------------- Processing Model Files For {r}")
-        ds = process_model_files(folder=run_folder, model=model)
+        ds = process_model_files(folder=folder, model=model, run=r)
         if ds is not None:
             print(f"--------------------- Uploading to HuggingFace Run: {r}")
-            upload_to_hf(ds, folder=run_folder, model=model, run=r)
+            upload_to_hf(ds, folder=folder, model=model, run=r)
 
 
 if __name__ == "__main__":

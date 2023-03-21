@@ -30,7 +30,7 @@ def find_file_name(
     base_url="https://opendata.dwd.de/weather/nwp",
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
-    run="00"
+    run="00",
 ) -> list:
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).

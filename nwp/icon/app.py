@@ -74,22 +74,22 @@ def process_model_files(
     folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00"
 ):
     if model == "global":
-        hf_path = "openclimatefix/dwd-icon-global"
         var_base = "icon_global_icosahedral"
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
             list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
-            engine="cfgrib",backend_kwargs={'errors': 'ignore'},
+            engine="cfgrib",
+            backend_kwargs={"errors": "ignore"},
         )
         lat_ds = xr.open_dataset(
             list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
-            engine="cfgrib",backend_kwargs={'errors': 'ignore'},
+            engine="cfgrib",
+            backend_kwargs={"errors": "ignore"},
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
     else:
-        hf_path = "openclimatefix/dwd-icon-eu"
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
@@ -114,7 +114,11 @@ def process_model_files(
             ds = xr.concat(
                 [
                     xr.open_mfdataset(
-                        p, engine="cfgrib",backend_kwargs={'errors': 'ignore'}, combine="nested", concat_dim="isobaricInhPa",
+                        p,
+                        engine="cfgrib",
+                        backend_kwargs={"errors": "ignore"},
+                        combine="nested",
+                        concat_dim="isobaricInhPa",
                     ).sortby("isobaricInhPa")
                     for p in paths
                 ],
@@ -148,7 +152,7 @@ def process_model_files(
                     engine="cfgrib",
                     combine="nested",
                     concat_dim="step",
-                    backend_kwargs={'errors': 'ignore'},
+                    backend_kwargs={"errors": "ignore"},
                 )
                 .sortby("step")
                 .drop_vars("valid_time")

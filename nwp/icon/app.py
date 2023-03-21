@@ -80,11 +80,11 @@ def process_model_files(
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
             list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
-            engine="cfgrib",
+            engine="cfgrib",backend_kwargs={'errors': 'ignore'},
         )
         lat_ds = xr.open_dataset(
             list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
-            engine="cfgrib",
+            engine="cfgrib",backend_kwargs={'errors': 'ignore'},
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
@@ -114,7 +114,7 @@ def process_model_files(
             ds = xr.concat(
                 [
                     xr.open_mfdataset(
-                        p, engine="cfgrib", combine="nested", concat_dim="isobaricInhPa"
+                        p, engine="cfgrib",backend_kwargs={'errors': 'ignore'}, combine="nested", concat_dim="isobaricInhPa",
                     ).sortby("isobaricInhPa")
                     for p in paths
                 ],
@@ -133,16 +133,7 @@ def process_model_files(
         datasets.append(ds)
     ds_atmos = xr.merge(datasets)
     print(ds_atmos)
-    files = api.list_repo_files(hf_path, repo_type="dataset")
-    if (
-        f"data/{ds_atmos.time.dt.year.values}/"
-        f"{ds_atmos.time.dt.month.values}/"
-        f"{ds_atmos.time.dt.day.values}/"
-        f"{ds_atmos.time.dt.year.values}{str(ds_atmos.time.dt.month.values).zfill(2)}{str(ds_atmos.time.dt.day.values).zfill(2)}"
-        f"_{str(ds_atmos.time.dt.hour.values).zfill(2)}.zarr.zip" in files
-    ):
-        return None
-
+    print(ds_atmos.time.values)
     total_dataset = []
     for var_2d in var_2d_list:
         print(var_2d)
@@ -155,6 +146,7 @@ def process_model_files(
                     engine="cfgrib",
                     combine="nested",
                     concat_dim="step",
+                    backend_kwargs={'errors': 'ignore'},
                 )
                 .sortby("step")
                 .drop_vars("valid_time")

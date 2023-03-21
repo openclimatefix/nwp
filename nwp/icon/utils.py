@@ -117,7 +117,7 @@ def download_extract_url(url_and_folder):
 
     """
     url, folder = url_and_folder
-    filename = folder + os.path.basename(url).replace(".bz2", "")
+    filename = os.path.join(folder, os.path.basename(url).replace(".bz2", ""))
 
     if os.path.exists(filename):
         extracted_files = filename

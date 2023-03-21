@@ -30,6 +30,7 @@ def find_file_name(
     base_url="https://opendata.dwd.de/weather/nwp",
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
+    run="00"
 ) -> None:
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
@@ -42,7 +43,7 @@ def find_file_name(
     to the download_extract_files function if the file does not
     exist it will simply not be downloaded.
     """
-    date_string, run_string = get_run()
+    date_string, run_string = get_run(run)
     if type(f_times) is not list:
         f_times = [f_times]
     if (vars_2d is None) and (vars_3d is None):

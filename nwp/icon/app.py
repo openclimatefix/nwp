@@ -42,7 +42,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
     for run in runs:
-        run_folder = f"{parent_folder}/{run}/"
+        run_folder = os.path.join(parent_folder,run)
         if not os.path.exists(run_folder):
             os.mkdir(run_folder)
 
@@ -85,11 +85,11 @@ def process_model_files(
         invariant_list = None
     if invariant_list is not None:
         lon_ds = xr.open_dataset(
-            list(glob(f"{folder}/{run}/icon_global_icosahedral_time-invariant_*_CLON.grib2"))[0],
+            list(glob(os.path.join(folder, run, f"icon_global_icosahedral_time-invariant_*_CLON.grib2")))[0],
             engine="cfgrib",
         )
         lat_ds = xr.open_dataset(
-            list(glob(f"{folder}/{run}/icon_global_icosahedral_time-invariant_*_CLAT.grib2"))[0],
+            list(glob(os.path.join(folder, run, f"icon_global_icosahedral_time-invariant_*_CLAT.grib2")))[0],
             engine="cfgrib",
         )
         lons = lon_ds.tlon.values
@@ -102,8 +102,7 @@ def process_model_files(
         print(var_3d)
         paths = [
             list(
-                glob(
-                    f"{folder}/{run}/{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2"
+                glob(os.path.join(folder, run, f"{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2")
                 )
             )
             for s in range(73)
@@ -146,8 +145,7 @@ def process_model_files(
         print(var_2d)
         try:
             ds = (
-                xr.open_mfdataset(
-                    f"{folder}/{run}/{var_base}_single-level_*_*_{var_2d.upper()}.grib2",
+                xr.open_mfdataset(os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
                     engine="cfgrib",
                     combine="nested",
                     concat_dim="step",
@@ -179,7 +177,7 @@ def process_model_files(
 
 
 def upload_to_hf(dataset_xr, folder, model="global", run="00"):
-    zarr_path = f"{folder}/{run}.zarr.zip"
+    zarr_path = os.path.join(folder, f"{run}.zarr.zip")
     if model == "global":
         chunking = {
             "step": 37,
@@ -214,8 +212,11 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
                 repo_type="dataset",
             )
             done = True
-            os.remove(zarr_path)
-            shutil.rmtree(folder)
+            try:
+                os.remove(zarr_path)
+                shutil.rmtree(folder)
+            except:
+                continue
         except Exception as e:
             print(e)
 
@@ -230,7 +231,10 @@ def remove_files(folder: str) -> None:
     Returns:
         None
     """
-    shutil.rmtree(folder)
+    try:
+        shutil.rmtree(folder)
+    except:
+        pass
 
 
 @click.command()
@@ -251,6 +255,7 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--delete",
+    is_flag=True,
     default=False,
     help=("Whether to delete the run foldder files or not"),
 )
@@ -269,7 +274,7 @@ def main(model: str, folder: str, run: str, delete: bool):
     if delete:
         print(f"----------------- Removing Model Files for : {model=} {run=}")
         for r in run:
-            remove_files(f"{folder}/{r}")
+            remove_files(os.path.join(folder, r))
     print(f"------------------- Downloading Model Files for: {model=} {run=}")
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:
@@ -281,7 +286,7 @@ def main(model: str, folder: str, run: str, delete: bool):
     if delete:
         print(f"---------------------- Removing Model Files for : {model=} {run=}")
         for r in run:
-            remove_files(f"{folder}/{r}")
+            remove_files(os.path.join(folder, r))
 
 
 if __name__ == "__main__":

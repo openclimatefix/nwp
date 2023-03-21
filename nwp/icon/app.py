@@ -282,6 +282,8 @@ def main(model: str, folder: str, run: str, delete: bool):
         for r in run:
             remove_files(os.path.join(folder, r))
     print(f"------------------- Downloading Model Files for: {model=} {run=}")
+    if not os.path.exists(folder):
+        os.mkdir(folder)
     download_model_files(runs=run, parent_folder=folder, model=model)
     for r in run:
         print(f"--------------------- Processing Model Files For {model=} {r}")

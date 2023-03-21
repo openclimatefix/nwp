@@ -62,6 +62,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
                     folder=run_folder,
                     run=run,
                     f_times=f_steps,
+                    model=model,
                 )
                 not_done = False
             except Exception as e:
@@ -77,18 +78,10 @@ def process_model_files(
         var_base = "icon_global_icosahedral"
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
-        invariant_list = GLOBAL_INVARIENT_LIST
-    else:
-        hf_path = "openclimatefix/dwd-icon-eu"
-        var_base = "icon-eu_europe_regular-lat-lon"
-        var_3d_list = EU_VAR3D_LIST
-        var_2d_list = EU_VAR2D_LIST
-        invariant_list = None
-    if invariant_list is not None:
         lon_ds = xr.open_dataset(
             list(
                 glob(
-                    os.path.join(folder, run, "icon_global_icosahedral_time-invariant_*_CLON.grib2")
+                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")
                 )
             )[0],
             engine="cfgrib",
@@ -96,7 +89,7 @@ def process_model_files(
         lat_ds = xr.open_dataset(
             list(
                 glob(
-                    os.path.join(folder, run, "icon_global_icosahedral_time-invariant_*_CLAT.grib2")
+                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")
                 )
             )[0],
             engine="cfgrib",
@@ -104,6 +97,10 @@ def process_model_files(
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
     else:
+        hf_path = "openclimatefix/dwd-icon-eu"
+        var_base = "icon-eu_europe_regular-lat-lon"
+        var_3d_list = EU_VAR3D_LIST
+        var_2d_list = EU_VAR2D_LIST
         lons = None
         lats = None
     datasets = []

@@ -153,6 +153,7 @@ def get_dset(
             var_url_base="icon_global_icosahedral"
             if model == "global"
             else "icon-eu_europe_regular-lat-lon",
+            run=run
         )
         downloaded_files = download_extract_files(urls, folder)
 

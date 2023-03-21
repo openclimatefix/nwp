@@ -64,7 +64,8 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
                     f_times=f_steps,
                 )
                 not_done = False
-            except:
+            except Exception as e:
+                print(e)
                 continue
 
 

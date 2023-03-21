@@ -126,13 +126,15 @@ def process_model_files(
         ds = ds.rename({v: var_3d for v in ds.data_vars})
         coords_to_remove = []
         for coord in ds.coords:
-            if coord not in ds.dims and coord != "time":
+            if coord not in ds.dims and coord != "time" and coord != "valid_time":
                 coords_to_remove.append(coord)
+        print(coords_to_remove)
         if len(coords_to_remove) > 0:
             ds = ds.drop_vars(coords_to_remove)
         datasets.append(ds)
     ds_atmos = xr.merge(datasets)
     print(ds_atmos)
+    print(ds_atmos.valid_time.values[0] - ds_atmos.step.values[0])
     print(ds_atmos.time.values)
     total_dataset = []
     for var_2d in var_2d_list:

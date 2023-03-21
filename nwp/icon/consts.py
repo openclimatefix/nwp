@@ -68,7 +68,7 @@ GLOBAL_VAR2D_LIST = [
     "z0",
 ]
 
-GLOBAL_VAR3D_LIST = ["fi", "p", "qv", "relhum", "t", "u", "v"]
+GLOBAL_VAR3D_LIST = ["fi", "relhum", "t", "u", "v"]
 
 GLOBAL_INVARIENT_LIST = [
     "clat",

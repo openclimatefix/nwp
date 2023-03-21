@@ -79,19 +79,11 @@ def process_model_files(
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
-            list(
-                glob(
-                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")
-                )
-            )[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
             engine="cfgrib",
         )
         lat_ds = xr.open_dataset(
-            list(
-                glob(
-                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")
-                )
-            )[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
             engine="cfgrib",
         )
         lons = lon_ds.tlon.values

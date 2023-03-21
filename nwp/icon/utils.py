@@ -140,14 +140,19 @@ def get_dset(
     f_times=0,
     run="00",
     folder="/mnt/storage_ssd_4tb/DWD/",
-    model="global"
+    model="global",
 ):
     if vars_2d or vars_3d:
         date_string, _ = get_run(run)
         urls = find_file_name(
-            vars_2d=vars_2d, vars_3d=vars_3d, invarient=invarient, f_times=f_times,
+            vars_2d=vars_2d,
+            vars_3d=vars_3d,
+            invarient=invarient,
+            f_times=f_times,
             model_url="icon/grib" if model == "global" else "icon-eu/grib",
-            var_url_base="icon_global_icosahedral" if model == "global" else "icon-eu_europe_regular-lat-lon"
+            var_url_base="icon_global_icosahedral"
+            if model == "global"
+            else "icon-eu_europe_regular-lat-lon",
         )
         downloaded_files = download_extract_files(urls, folder)
 

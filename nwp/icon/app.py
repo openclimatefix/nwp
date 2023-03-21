@@ -42,7 +42,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
     for run in runs:
-        run_folder = os.path.join(parent_folder,run)
+        run_folder = os.path.join(parent_folder, run)
         if not os.path.exists(run_folder):
             os.mkdir(run_folder)
 
@@ -86,11 +86,19 @@ def process_model_files(
         invariant_list = None
     if invariant_list is not None:
         lon_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"icon_global_icosahedral_time-invariant_*_CLON.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, "icon_global_icosahedral_time-invariant_*_CLON.grib2")
+                )
+            )[0],
             engine="cfgrib",
         )
         lat_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"icon_global_icosahedral_time-invariant_*_CLAT.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, "icon_global_icosahedral_time-invariant_*_CLAT.grib2")
+                )
+            )[0],
             engine="cfgrib",
         )
         lons = lon_ds.tlon.values
@@ -103,7 +111,12 @@ def process_model_files(
         print(var_3d)
         paths = [
             list(
-                glob(os.path.join(folder, run, f"{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2")
+                glob(
+                    os.path.join(
+                        folder,
+                        run,
+                        f"{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
+                    )
                 )
             )
             for s in range(73)
@@ -146,7 +159,10 @@ def process_model_files(
         print(var_2d)
         try:
             ds = (
-                xr.open_mfdataset(os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
+                xr.open_mfdataset(
+                    os.path.join(
+                        folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"
+                    ),
                     engine="cfgrib",
                     combine="nested",
                     concat_dim="step",

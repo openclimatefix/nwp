@@ -214,7 +214,6 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
             done = True
             try:
                 os.remove(zarr_path)
-                shutil.rmtree(folder)
             except:
                 continue
         except Exception as e:

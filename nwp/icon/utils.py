@@ -31,7 +31,7 @@ def find_file_name(
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
     run="00"
-) -> None:
+) -> list:
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
     - vars_2d, a list of 2d variables to download, e.g. ['t_2m']
@@ -78,6 +78,7 @@ def find_file_name(
             urls.append(
                 f"{base_url}/{model_url}/{run_string}/{var}/{var_url}_{date_string}_{var.upper()}.grib2.bz2"
             )
+    return urls
 
 
 def download_extract_files(urls: list, folder: str) -> list[str]:

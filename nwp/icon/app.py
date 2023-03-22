@@ -212,7 +212,9 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00"):
                 f"{dataset_xr.time.dt.day.values}/"
                 f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
                 f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
-                repo_id="openclimatefix/dwd-icon-global" if model == "global" else "openclimatefix/dwd-icon-eu",
+                repo_id="openclimatefix/dwd-icon-global"
+                if model == "global"
+                else "openclimatefix/dwd-icon-eu",
                 repo_type="dataset",
             )
             done = True

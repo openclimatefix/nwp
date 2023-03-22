@@ -19,8 +19,6 @@ from nwp.icon.consts import (
 )
 from nwp.icon.utils import get_dset
 
-api = HfApi()
-
 
 def download_model_files(runs=None, parent_folder=None, model="global"):
     """ """
@@ -138,8 +136,6 @@ def process_model_files(
         datasets.append(ds)
     ds_atmos = xr.merge(datasets)
     print(ds_atmos)
-    print(ds_atmos.valid_time.values[0] - ds_atmos.step.values[0])
-    print(ds_atmos.time.values)
     total_dataset = []
     for var_2d in var_2d_list:
         print(var_2d)
@@ -155,7 +151,6 @@ def process_model_files(
                     backend_kwargs={"errors": "ignore"},
                 )
                 .sortby("step")
-                .drop_vars("valid_time")
             )
         except Exception as e:
             print(e)
@@ -180,7 +175,8 @@ def process_model_files(
     return ds
 
 
-def upload_to_hf(dataset_xr, folder, model="global", run="00"):
+def upload_to_hf(dataset_xr, folder, model="global", run="00", token=None):
+    api = HfApi(token=token)
     zarr_path = os.path.join(folder, f"{run}.zarr.zip")
     if model == "global":
         chunking = {
@@ -250,7 +246,7 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--folder",
-    default=("/mnt/storage_ssd_4tb/DWD/"),
+    default=("/run/media/jacob/data/ICON/"),
     help="Folder to put the raw and zarr in",
 )
 @click.option(
@@ -264,7 +260,12 @@ def remove_files(folder: str) -> None:
     default=False,
     help=("Whether to delete the run foldder files or not"),
 )
-def main(model: str, folder: str, run: str, delete: bool):
+@click.option(
+    "--token",
+    default=None,
+    help=("HuggingFace Token"),
+)
+def main(model: str, folder: str, run: str, delete: bool, token: str):
     """The entry point into the script."""
     assert model in ["global", "eu"]
     if run is not None:
@@ -289,7 +290,7 @@ def main(model: str, folder: str, run: str, delete: bool):
         ds = process_model_files(folder=folder, model=model, run=r)
         if ds is not None:
             print(f"--------------------- Uploading to HuggingFace Run: {model=} {r}")
-            upload_to_hf(ds, folder=folder, model=model, run=r)
+            upload_to_hf(ds, folder=folder, model=model, run=r, token=token)
     if delete:
         print(f"---------------------- Removing Model Files for : {model=} {run=}")
         for r in run:

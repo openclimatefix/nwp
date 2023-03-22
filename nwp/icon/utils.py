@@ -8,7 +8,7 @@ from multiprocessing import Pool, cpu_count
 import requests
 
 
-def get_run(run: str) -> tuple[str | str, str]:
+def get_run(run: str):
     """
     Get run name
 
@@ -31,7 +31,7 @@ def find_file_name(
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
     run="00",
-) -> list:
+):
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
     - vars_2d, a list of 2d variables to download, e.g. ['t_2m']
@@ -81,7 +81,7 @@ def find_file_name(
     return urls
 
 
-def download_extract_files(urls: list, folder: str) -> list[str]:
+def download_extract_files(urls: list, folder: str):
     """Given a list of urls download and bunzip2 them.
     Return a list of the path of the extracted files
     """

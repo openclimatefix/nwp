@@ -9,9 +9,9 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="nwp",
-    version="0.1.0",
+    version="0.0.1",
     license="MIT",
-    description="NWP",
+    description="NWP Processing",
     author="Jack Kelly, Peter Dudfield, Jacob Bieker",
     author_email="info@openclimatefix.org",
     company="Open Climate Fix Ltd",

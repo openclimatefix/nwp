@@ -30,4 +30,3 @@ Please see the comments at the top of the script for instructions.
 Then convert the `grib` files to Zarr using `scripts/convert_NWP_grib_to_zarr.py`.  Run that script
 with `--help` to see how to operate it.  See the comments at the top of the script to learn how
 the script works.
-

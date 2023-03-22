@@ -4,20 +4,14 @@
 """Convert numerical weather predictions from the UK Met Office "UKV" model to Zarr.
 """
 import datetime
-import glob
 import logging
-import multiprocessing
-import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
-import cfgrib
 import click
-import numcodecs
-from numcodecs.bitround import BitRound
 import numpy as np
-import pandas as pd
 import xarray as xr
+from numcodecs.bitround import BitRound
 from ocf_blosc2 import Blosc2
 
 logger = logging.getLogger(__name__)
@@ -25,8 +19,24 @@ logger = logging.getLogger(__name__)
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
 NWP_VARIABLE_NAMES = (
-    'cdcb', 'lcc', 'mcc', 'hcc', 'sde', 'hcct', 'dswrf', 'dlwrf', 'h', 't',
-   'r', 'dpt', 'vis', 'si10', 'wdir10', 'prmsl', 'prate')
+    "cdcb",
+    "lcc",
+    "mcc",
+    "hcc",
+    "sde",
+    "hcct",
+    "dswrf",
+    "dlwrf",
+    "h",
+    "t",
+    "r",
+    "dpt",
+    "vis",
+    "si10",
+    "wdir10",
+    "prmsl",
+    "prate",
+)
 
 # Define geographical domain for UKV.
 # Taken from page 4 of http://cedadocs.ceda.ac.uk/1334/1/uk_model_data_sheet_lores1.pdf
@@ -111,7 +121,7 @@ def main(
     use_int8: bool,
     precision: int,
     step_chunk_size: int,
-    bitround: Optional[int]
+    bitround: Optional[int],
 ):
     """The entry point into the script."""
     destination_zarr_path = Path(destination_zarr_path)
@@ -123,25 +133,25 @@ def main(
     filter_eccodes_logging()
 
     # Open current Zarr
-    source_dataset = xr.open_dataset(source_zarr_path, engine='zarr').sortby("init_time")
+    source_dataset = xr.open_dataset(source_zarr_path, engine="zarr").sortby("init_time")
 
     # Rechunk
     source_dataset = source_dataset.chunk(
-            {
-                "init_time": 1,
-                "step": step_chunk_size,
-                "y": len(source_dataset.y) // 2,
-                "x": len(source_dataset.x) // 2,
-                "variable": -1,
-            }
-        )
+        {
+            "init_time": 1,
+            "step": step_chunk_size,
+            "y": len(source_dataset.y) // 2,
+            "x": len(source_dataset.x) // 2,
+            "variable": -1,
+        }
+    )
 
     print(source_dataset)
 
     # options
     UKV_dict = {
-                "compressor": Blosc2(cname="zstd", clevel=5),
-            }
+        "compressor": Blosc2(cname="zstd", clevel=5),
+    }
 
     if precision == 16:
         source_dataset["UKV"] = source_dataset.astype(np.float16)["UKV"]
@@ -169,6 +179,7 @@ def main(
     # The main event!
     source_dataset.to_zarr(destination_zarr_path, **to_zarr_kwargs, compute=True, mode="w")
 
+
 def configure_logging(log_level: str, log_filename: str) -> None:
     """Configure logger for this script.
 
@@ -195,6 +206,7 @@ def filter_eccodes_logging():
 
     Filter out this warning because it is not useful, and just adds noise to the log.
     """
+
     # The warning originates from here:
     # https://github.com/ecmwf/cfgrib/blob/master/cfgrib/dataset.py#L402
     class FilterEccodesWarning(logging.Filter):

@@ -140,18 +140,13 @@ def process_model_files(
     for var_2d in var_2d_list:
         print(var_2d)
         try:
-            ds = (
-                xr.open_mfdataset(
-                    os.path.join(
-                        folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"
-                    ),
-                    engine="cfgrib",
-                    combine="nested",
-                    concat_dim="step",
-                    backend_kwargs={"errors": "ignore"},
-                )
-                .sortby("step")
-            )
+            ds = xr.open_mfdataset(
+                os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
+                engine="cfgrib",
+                combine="nested",
+                concat_dim="step",
+                backend_kwargs={"errors": "ignore"},
+            ).sortby("step")
         except Exception as e:
             print(e)
             continue

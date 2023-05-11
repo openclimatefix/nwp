@@ -208,8 +208,6 @@ def main(
         map_datetime_to_grib_filename, destination_zarr_path
     )
 
-    # Sorted index of datetimes
-
     # The main event!
     process_grib_files_in_parallel(
         map_datetime_to_grib_filename=map_datetime_to_grib_filename,
@@ -232,7 +230,9 @@ def configure_logging(log_level: str, log_filename: str) -> None:
     formatter = logging.Formatter("%(asctime)s %(levelname)s processID=%(process)d %(message)s")
 
     handlers: list[logging.Handler] = [
-        logging.StreamHandler(), logging.FileHandler(log_filename, mode="a")]
+        logging.StreamHandler(),
+        logging.FileHandler(log_filename, mode="a"),
+    ]
 
     for handler in handlers:
         handler.setLevel(log_level)
@@ -301,7 +301,9 @@ def grib_filename_to_datetime(full_grib_filename: Path) -> datetime.datetime:
         raise RuntimeError(msg)
 
     # Convert strings to ints:
-    regex_groups = {key: int(value) for key, value in regex_match.groupdict().items()}
+    regex_groups: dict[str, int] = {
+        key: int(value) for key, value in regex_match.groupdict().items()
+    }
 
     return datetime.datetime(**regex_groups)
 
@@ -360,7 +362,7 @@ def get_last_nwp_init_datetime_in_zarr(zarr_path: Path) -> datetime.datetime:
     return dataset.init_time[-1].values
 
 
-def load_grib_file(full_grib_filename: Union[Path, str], verbose: bool = False) -> xr.Dataset:
+def load_grib_file(full_grib_filename: Union[Path, str]) -> xr.Dataset:
     """Merges and loads all contiguous xr.Datasets for a single grib file.
 
     Removes unnecessary variables. Picks heightAboveGround = 1 meter for temperature.
@@ -371,7 +373,6 @@ def load_grib_file(full_grib_filename: Union[Path, str], verbose: bool = False) 
 
     Args:
       full_grib_filename:  The full filename (including the path) of a single grib file.
-      verbose:  If True then print out some useful debugging information.
     """
     # The grib files are "heterogeneous" so we cannot use xr.open_dataset().
     # Instead we use cfgrib.open_datasets() which returns a *list* of contiguous xr.Datasets.
@@ -386,13 +387,12 @@ def load_grib_file(full_grib_filename: Union[Path, str], verbose: bool = False) 
     for i in range(n_datasets):
         ds = datasets_from_grib[i]
 
-        if verbose:
-            print("\nDataset", i, "before processing:\n", ds, "\n")
+        logger.debug(f"Dataset {i} before processing:\n{ds}\n")
 
         # We want the temperature at 1 meter above ground, not at 0 meters above ground.
         # In the early NWPs (definitely in the 2016-03-22 NWPs), `heightAboveGround` only has
         # 1 entry ("1" meter above ground) and `heightAboveGround` isn't set as a dimension for `t`.
-        # In later NWPs, 'heightAboveGround' has 2 values (0, 1) is a dimension for `t`.
+        # In later NWPs, 'heightAboveGround' has 2 values (0, 1) and is a dimension for `t`.
         if "t" in ds and "heightAboveGround" in ds["t"].dims:
             ds = ds.sel(heightAboveGround=1)
 
@@ -401,15 +401,12 @@ def load_grib_file(full_grib_filename: Union[Path, str], verbose: bool = False) 
             try:
                 del ds[var_name]
             except KeyError as e:
-                if verbose:
-                    print("var name not in dataset:", e)
+                logger.debug(f"var name not in dataset: {e}")
             else:
-                if verbose:
-                    print("Deleted", var_name)
+                logger.debug(f"Deleted {var_name}")
 
-        if verbose:
-            print("\nDataset", i, "after processing:\n", ds, "\n")
-            print("**************************************************")
+        logger.debug(f"Dataset {i} after processing:\n{ds}\n")
+        logger.debug("**************************************************")
 
         datasets_from_grib[i] = ds
         del ds  # Save memory.
@@ -456,7 +453,7 @@ def dataset_has_variables(dataset: xr.Dataset) -> bool:
 def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     """Get the Dataset ready for saving to Zarr.
 
-    Convert the Dataset (with differet DataArrays for each NWP variable)
+    Convert the Dataset (with different DataArrays for each NWP variable)
     to a single DataArray with a `variable` dimension. We do this so each
     Zarr chunk can hold multiple NWP variables (which is useful because
     we often load all the NWP variables at once).
@@ -465,7 +462,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     the initialisation time and the target time).
 
     Rechunk the Dataset. Rechunking at this step (instead of specifying chunks using the
-    `dataset.to_zarr(encoding=...)`) has two advantages:  1) We can name the dimensions; and
+    `dataset.to_zarr(encoding=...)`) has two advantages: 1) We can name the dimensions; and
     2) Chunking at this stage converts the Dataset into a Dask dataset, which adds a second
     level of parallelism.
     """
@@ -476,7 +473,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     # So fix the order:
     assert set(da["variable"].values) == set(NWP_VARIABLE_NAMES)
     if not (da["variable"] == NWP_VARIABLE_NAMES).all():
-        logger.warning("Need to fix the order of the NWP variable names:")
+        logger.warning("Fixing the order of the NWP variable names.")
         da = da.reindex(variable=list(NWP_VARIABLE_NAMES))
 
     # Reverse `y` so it's top-to-bottom (so ZarrDataSource.get_example() works correctly!)
@@ -641,6 +638,7 @@ def process_grib_files_in_parallel(
     destination_zarr_path: Path,
     n_processes: int,
 ) -> None:
+    """Process grib files in parallel."""
     start_time = pd.Timestamp.now()
 
     # Create a list of `tasks` which include the grib filenames, the prev_lock & next_lock:

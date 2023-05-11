@@ -569,7 +569,7 @@ def load_grib_files_for_single_nwp_init_time(
 
 
 def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> xr.Dataset:
-    """A wrapper arouund load_grib_files_for_single_nwp_init_time but with locking logic.
+    """A wrapper around load_grib_files_for_single_nwp_init_time but with locking logic.
 
     See the docstring at the top of this script for more information about how we use
     a chain of multiprocessing.Locks to guarantee that only one process writes to Zarr at once,

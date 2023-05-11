@@ -16,3 +16,7 @@ dependencies:
   - mypy
   - black
   - pre-commit
+
+  # pip
+  - pip:
+    - ocf_blosc2

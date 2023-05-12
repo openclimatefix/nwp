@@ -16,7 +16,10 @@
 # SSH'ing into a VM or remote server.
 
 wget --recursive -nH --cut-dirs=5 --no-clobber \
-     --reject-regex ".*[01][3951]00_.*\.grib$" \
+     --reject-regex ".*0300_.*\.grib$" \
+     --reject-regex ".*0900_.*\.grib$" \
+     --reject-regex ".*1500_.*\.grib$" \
+     --reject-regex ".*2100_.*\.grib$" \
      --reject-regex ".*T120\.grib$" \
      --reject-regex ".*Wholesale[345].*\.grib$" \
      ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"

@@ -19,7 +19,7 @@
 wget --recursive -nH --cut-dirs=5 --no-clobber \
      --reject-regex ".*[03|09|15|21]00_.*\.grib$" \
      --reject-regex ".*T120\.grib$" \
-     --reject-regex ".*Wholesale[34]\.grib$" \
+     --reject-regex ".*Wholesale[345].*\.grib$" \
      ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
 
 # What are all those `--reject-regex` instructions doing?

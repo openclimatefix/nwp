@@ -16,12 +16,7 @@
 # SSH'ing into a VM or remote server.
 
 wget --recursive -nH --cut-dirs=5 --no-clobber \
-     --reject-regex ".*0300.*" \
-     --reject-regex ".*0900.*" \
-     --reject-regex ".*1500.*" \
-     --reject-regex ".*2100.*" \
-     --reject-regex ".*T120\.grib$" \
-     --reject-regex ".*Wholesale[345].*\.grib$" \
+     --reject-regex '0300|0900|1500|2100|.*T120\.grib$|.*Wholesale[345].*\.grib$' \
      ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
 
 # What are all those `--reject-regex` instructions doing?

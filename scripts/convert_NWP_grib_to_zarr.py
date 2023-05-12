@@ -41,15 +41,8 @@ The multi-processing aspect of the code is engineered to satisfy several constra
    pass large objects between processes: Each xr.Dataset stays in one process. A single process
    loads the grib files associated with one init_time, processes, and writes the data to Zarr.
 
-The code guarantees that the processes write to disk in order of the NWP init time by using a
-"chain of locks", kind of like a linked list. The iterable passed into multiprocessing.Pool.map
-is a tuple of (<the list of grib filenames for one NWP init time>, <a "previous_lock">, and
-<a "next_lock">). Just before appending to the Zarr, each process blocks until the "previous_lock"
-is released when the process working on the previous NWP init time finishes writing to the Zarr.
-The "next_lock" for task n is the "previous_lock" for task n+1:
-
-  |------TASK 0------|    |------TASK 1------|    |------TASK 2------|
-  prev_lock, next_lock == prev_lock, next_lock == prev_lock, next_lock
+The code guarantees that the processes write to disk in order of the NWP init time by using
+`multiprocessing.Pool.imap()`.
 
 TROUBLESHOOTING
 If you get any errors regarding .idx files then try deleting all *.idx files and trying again.
@@ -61,7 +54,7 @@ import logging
 import multiprocessing
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import cfgrib
 import click
@@ -133,8 +126,9 @@ VARS_TO_DELETE = (
     ),
     help=(
         "Optional. The directory and the search pattern for the source grib files."
-        "  For example /foo/bar/*/*/*/*Wholesale[12].grib. Should be in double quotes."
+        ' For example "/foo/bar/*/*/*/*Wholesale[12].grib". Should be in double quotes.'
     ),
+    type=Path,
 )
 @click.option(
     "--destination_zarr_path",
@@ -173,7 +167,7 @@ VARS_TO_DELETE = (
     ),
 )
 def main(
-    source_grib_path_and_search_pattern: str,
+    source_grib_path_and_search_pattern: Path,
     destination_zarr_path: Path,
     n_processes: int,
     log_level: str,
@@ -187,14 +181,15 @@ def main(
     configure_logging(log_level=log_level, log_filename=log_filename)
     filter_eccodes_logging()
 
-    # Get all filenames.
+    # Get all filenames
+    source_grib_path_and_search_pattern = source_grib_path_and_search_pattern.expanduser()
     logger.info(f"Getting list of all filenames in {source_grib_path_and_search_pattern}...")
-    filenames = glob.glob(source_grib_path_and_search_pattern)
+    filenames = glob.glob(str(source_grib_path_and_search_pattern))
     filenames = [Path(filename) for filename in filenames]
     logger.info(f"Found {len(filenames):,d} grib filenames.")
     if len(filenames) == 0:
         logger.warning(
-            "No files found!  Are you sure the source_grib_path_and_search_pattern is correct?"
+            "No files found! Are you sure the source_grib_path_and_search_pattern is correct?"
         )
         return
 
@@ -460,11 +455,6 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
 
     Rename `time` to `init_time` (because `time` is ambiguous. NWPs have two "times":
     the initialisation time and the target time).
-
-    Rechunk the Dataset. Rechunking at this step (instead of specifying chunks using the
-    `dataset.to_zarr(encoding=...)`) has two advantages: 1) We can name the dimensions; and
-    2) Chunking at this stage converts the Dataset into a Dask dataset, which adds a second
-    level of parallelism.
     """
     logger.debug("Post-processing dataset...")
     da = dataset.to_array(dim="variable", name="UKV")
@@ -482,19 +472,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     y_reversed = da.y[::-1]
     da = da.reindex(y=y_reversed)
 
-    return (
-        da.to_dataset()
-        .rename({"time": "init_time"})
-        .chunk(
-            {
-                "init_time": 1,
-                "step": 37,
-                "y": len(dataset.y) // 2,
-                "x": len(dataset.x) // 2,
-                "variable": -1,
-            }
-        )
-    )
+    return da.to_dataset().rename({"time": "init_time"})
 
 
 def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
@@ -508,7 +486,7 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
         https://github.com/pydata/xarray/issues/5969   and
         http://xarray.pydata.org/en/stable/user-guide/io.html#time-units
 
-    Also sets the compressor to `numcodecs.Blosc(cname="zstd", clevel=5)` which has been shown
+    Also sets the compressor to `Blosc2(cname="zstd", clevel=5)` which has been shown
     to provide a good balance of speed and small file sizes in empirical testing.
     """
     zarr_path = Path(zarr_path)
@@ -522,11 +500,21 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
         assert len(dataset["step"]) == 37
     else:
         # Create new Zarr store.
+        chunk_shapes_dict = {
+            "variable": -1,
+            "init_time": 1,
+            "step": -1,
+            "y": len(dataset.y) // 2,
+            "x": len(dataset.x) // 2,
+        }
+        assert set(chunk_shapes_dict.keys()) == set(dataset["UKV"].dims)
+        chunk_shapes_list = [chunk_shapes_dict[dim_name] for dim_name in dataset["UKV"].dims]
         to_zarr_kwargs = dict(
             encoding={
                 "init_time": {"units": "nanoseconds since 1970-01-01"},
                 "UKV": {
                     "compressor": Blosc2(cname="zstd", clevel=5),
+                    "chunks": chunk_shapes_list,
                 },
             },
         )
@@ -536,7 +524,7 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
 
 def load_grib_files_for_single_nwp_init_time(
     full_grib_filenames: list[Path], task_number: int
-) -> Union[xr.Dataset, None]:
+) -> Optional[xr.Dataset]:
     """Returns processed Dataset merging all grib files specified by full_grib_filenames.
 
     Returns None if any of the grib files are invalid.
@@ -551,13 +539,13 @@ def load_grib_files_for_single_nwp_init_time(
             logger.warning(f"{e}. Filesize = {full_grib_filename.stat().st_size:,d} bytes")
             # If any of the files associated with this nwp_init_datetime is broken then
             # skip all, because we don't want incomplete data for an init_datetime.
-            return
+            return None
         else:
             if dataset_has_variables(dataset_for_filename):
                 datasets_for_nwp_init_datetime.append(dataset_for_filename)
             else:
                 logger.warning(f"{full_grib_filename} has no variables!")
-                return
+                return None
     logger.debug(f"Task #{task_number}: Merging datasets...")
     dataset_for_nwp_init_datetime = xr.merge(datasets_for_nwp_init_datetime)
     del datasets_for_nwp_init_datetime  # Save memory.
@@ -568,69 +556,47 @@ def load_grib_files_for_single_nwp_init_time(
     return dataset_for_nwp_init_datetime
 
 
-def load_grib_files_and_save_zarr_with_lock(task: dict[str, object]) -> xr.Dataset:
-    """A wrapper around load_grib_files_for_single_nwp_init_time but with locking logic.
-
-    See the docstring at the top of this script for more information about how we use
-    a chain of multiprocessing.Locks to guarantee that only one process writes to Zarr at once,
-    and that the writing is done in strict order of the NWP init time.
+def load_grib_files_for_nwp_init_time_with_exception_logging_and_timing(
+    task: dict[str, Any]
+) -> Optional[xr.Dataset]:
+    """Wrapper around load_grib_files_for_single_nwp_init_time with exception logging & timing.
 
     Args:
         task: A dict which contains the arguments for loading grib files. We use a dict
-              because multiprocessing.Pool.map() requires a single iterable (and we use
+              because multiprocessing.Pool.imap() requires a single iterable (and we use
               a single iterable of dicts). Task must contains these keys:
               - row:  The pd.Series listing the full grib filenames to load.
-              - previous_lock: The multiprocessing.Lock which will be released by the process
-                working on the previous task. This process will block until previous_lock
-                is released.
-              - next_lock: The multiprocessing.Lock which this process will release after
-                appending to the Zarr. Releasing this lock will allow the next process to proceed.
+              - task_number: The number of this task. Used for logging.
               - destination_zarr_path: The path of the Zarr to append to.
-              - start_time: The datetime at which this script started processing. Just used to
-                log the time taken so far, and the number of seconds per task.
     """
     full_grib_filenames = task["row"]
     task_number = task["task_number"]
-    destination_zarr_path = task["destination_zarr_path"]
-    start_time = task["start_time"]
 
-    dataset = load_grib_files_for_single_nwp_init_time(full_grib_filenames, task_number=task_number)
-    if dataset is not None:
-        logger.debug(f"Task #{task_number}: Before previous_lock.acquire()")
-        # Block waiting for previous processes to complete. This ensures that the reader processes
-        # don't get ahead of the writing process; and ensures that only one process writes to the
-        # Zarr at once; and ensures that data is appended in order of the NWP init time.
-        logger.debug(
-            f"Task #{task_number}: Finished appending NWP init time {dataset.init_time.values}"
-            f" to {destination_zarr_path}"
-        )
-        time_taken = pd.Timestamp.now() - start_time
-        seconds_per_task = (time_taken / (task_number + 1)).total_seconds()
-        logger.debug(
-            f"{task_number:,d} tasks (NWP init timesteps) completed in {time_taken}"
-            f". That's {seconds_per_task:,.1f} seconds per NWP init timestep."
-        )
-        return dataset
-    else:
-        logger.warning(
-            f"Task #{task_number}: Dataset is None!  Grib filenames = {full_grib_filenames}"
-        )
+    start_time = pd.Timestamp.now()
 
-    # Calculate timings.
-
-
-def load_grib_files_and_save_zarr_with_lock_wrapper(task: dict[str, object]) -> xr.Dataset:
-    """Simple wrapper around load_grib_files_and_save_zarr_with_lock to catch & log exceptions."""
+    logger.debug(f"Task #{task_number} starting...")
     try:
-        task_number = task["task_number"]
-        full_grib_filenames = task["row"]
-        return load_grib_files_and_save_zarr_with_lock(task)
+        dataset = load_grib_files_for_single_nwp_init_time(full_grib_filenames, task_number)
     except Exception:
         logger.exception(
             f"Exception raised when processing task number {task_number},"
             f" loading grib filenames {full_grib_filenames}"
         )
         raise
+
+    if dataset is None:
+        logger.warning(
+            f"Task #{task_number}: Dataset is None! Grib filenames = {full_grib_filenames}"
+        )
+        return None
+
+    # Compute the time taken for this NWP init time.
+    time_taken = pd.Timestamp.now() - start_time
+    logger.debug(
+        f"Task #{task_number}: Finished loading NWP init time {dataset.init_time.values}"
+        f" in {time_taken}"
+    )
+    return dataset
 
 
 def process_grib_files_in_parallel(
@@ -641,15 +607,14 @@ def process_grib_files_in_parallel(
     """Process grib files in parallel."""
     start_time = pd.Timestamp.now()
 
-    # Create a list of `tasks` which include the grib filenames, the prev_lock & next_lock:
+    # Create a list of `tasks` which include the grib filenames:
     tasks: list[dict[str, object]] = []
     for task_number, (_, row) in enumerate(map_datetime_to_grib_filename.groupby(level=0)):
         tasks.append(
             dict(
-                row=row,
+                row=row,  # The pd.Series listing the full grib filenames to load.
                 task_number=task_number,
                 destination_zarr_path=destination_zarr_path,
-                start_time=start_time,
             )
         )
 
@@ -658,10 +623,19 @@ def process_grib_files_in_parallel(
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
         for ds in pool.imap(
-            load_grib_files_and_save_zarr_with_lock_wrapper,
+            load_grib_files_for_nwp_init_time_with_exception_logging_and_timing,
             tasks,
         ):
-            append_to_zarr(ds, destination_zarr_path)
+            if ds is not None:
+                append_to_zarr(ds, destination_zarr_path)
+
+    # Compute the time taken in total.
+    time_taken = pd.Timestamp.now() - start_time
+    seconds_per_task = (time_taken / (len(tasks) + 1)).total_seconds()
+    logger.info(
+        f"{len(tasks):,d} tasks (NWP init timesteps) completed in {time_taken}"
+        f". That's an average of {seconds_per_task:,.1f} seconds per NWP init timestep."
+    )
 
     logger.info("Done!")
 

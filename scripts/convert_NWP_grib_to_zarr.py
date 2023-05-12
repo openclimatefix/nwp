@@ -472,6 +472,8 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     y_reversed = da.y[::-1]
     da = da.reindex(y=y_reversed)
 
+    da = da.astype(np.float16)
+
     return da.to_dataset().rename({"time": "init_time"})
 
 
@@ -518,7 +520,6 @@ def append_to_zarr(dataset: xr.Dataset, zarr_path: Union[str, Path]):
                 },
             },
         )
-    dataset["UKV"] = dataset.astype(np.float16)["UKV"]
     dataset.to_zarr(zarr_path, **to_zarr_kwargs)
 
 
@@ -622,7 +623,7 @@ def process_grib_files_in_parallel(
 
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
-        for ds in pool.imap(
+        for ds in pool.imap_unordered(
             load_grib_files_for_nwp_init_time_with_exception_logging_and_timing,
             tasks,
         ):

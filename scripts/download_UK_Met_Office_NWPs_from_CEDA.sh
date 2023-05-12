@@ -3,8 +3,8 @@
 # Request access to the UK Met Office data on CEDA from this web page:
 # https://catalogue.ceda.ac.uk/uuid/f47bc62786394626b665e23b658d385f
 #
-# Then call this script with three arguments: <username> <password> <year>. e.g.:
-# ./download_UK_Met_Office_NWPs_from_CEDA.sh foo bar 2021
+# Then call this script with three arguments: <username> <password> "/<year>". e.g.:
+# ./download_UK_Met_Office_NWPs_from_CEDA.sh foo bar "/2021"
 #
 # Call this script in the directory into which you want to download data. For
 # example, if you want to download data for 2021, create a directory
@@ -20,7 +20,7 @@ wget --recursive -nH --cut-dirs=5 --no-clobber \
      --reject-regex ".*[03|09|15|21]00_.*\.grib$" \
      --reject-regex ".*T120\.grib$" \
      --reject-regex ".*Wholesale[345].*\.grib$" \
-     ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
+     ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib"$3"
 
 # What are all those `--reject-regex` instructions doing?
 #

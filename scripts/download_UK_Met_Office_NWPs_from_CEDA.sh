@@ -16,11 +16,11 @@
 # You probably want to run this script in a `gnu screen` session if you're
 # SSH'ing into a VM or remote server.
 
-wget --user="$1" --password="$2" --recursive -nH --cut-dirs=5 --no-clobber \
---reject-regex "[[:digit:]]{8}(03|09|15|21)00.*\.grib$" \  # NOT WORKING.  TODO: Issue #2
---reject-regex "T120\.grib$" \  # NOT WORKING.  TODO: Issue #2.
---reject-regex "Wholesale5.*\.grib$" \
-ftp://ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
+wget --recursive -nH --cut-dirs=5 --no-clobber \
+     --reject-regex "[[:digit:]]{8}(03|09|15|21)00.*\.grib$" \
+     --reject-regex "T120\.grib$" \
+     --reject-regex "Wholesale5.*\.grib$" \
+     ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
 
 # What are all those `--reject-regex` instructions doing?
 #

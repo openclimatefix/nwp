@@ -20,8 +20,9 @@ wget --recursive -nH --cut-dirs=5 --no-clobber \
      ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/"$3"
 
 # What are all those `--reject-regex` instructions doing?
+# (Note that wget only allows a single `--reject-regex` argument)
 #
-# --reject-regex ".*[03|09|15|21]00_.*\.grib$"
+# --reject-regex "0300|0900|1500|2100"
 #   rejects all NWPs initialised at 3, 9, 15, or 21 hours (and so you end up
 #   with "only" four initialisations per day: 00, 06, 12, 18).
 #

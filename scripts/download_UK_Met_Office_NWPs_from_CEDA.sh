@@ -3,12 +3,12 @@
 # Request access to the UK Met Office data on CEDA from this web page:
 # https://catalogue.ceda.ac.uk/uuid/f47bc62786394626b665e23b658d385f
 #
-# Then call this script with three arguments: <username> <password> "/<year>". e.g.:
-# ./download_UK_Met_Office_NWPs_from_CEDA.sh foo bar "/2021"
+# Then call this script with two arguments: <username> <password>
+# e.g.:
+# ./download_UK_Met_Office_NWPs_from_CEDA.sh foo bar
 #
-# Call this script in the directory into which you want to download data. For
-# example, if you want to download data for 2021, create a directory
-# called something like /data/2021/, and run this script from that directory.
+# Call this script in the directory into which you want to download data.
+# It will download every year of data into a separate sub-directory.
 #
 # The Met Office data on CEDA goes back to March 2016. This script
 # will download about 4 terabytes per year of data.
@@ -16,11 +16,11 @@
 # You probably want to run this script in a `gnu screen` session if you're
 # SSH'ing into a VM or remote server.
 
-wget --recursive -nH --cut-dirs=5 --no-clobber \
+wget --recursive -nH --cut-dirs=4 --no-clobber \
      --reject-regex ".*[03|09|15|21]00_.*\.grib$" \
      --reject-regex ".*T120\.grib$" \
      --reject-regex ".*Wholesale[345].*\.grib$" \
-     ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib"$3"
+     ftp://"$1":"$2"@ftp.ceda.ac.uk/badc/ukmo-nwp/data/ukv-grib/
 
 # What are all those `--reject-regex` instructions doing?
 #

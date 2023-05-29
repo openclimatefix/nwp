@@ -19,4 +19,4 @@ dependencies:
 
   # pip
   - pip:
-    - ocf_blosc2
+      - ocf_blosc2

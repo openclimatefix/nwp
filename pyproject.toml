@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "nwp"
+version = "0.1.0"
+description = ""
+authors = ["OCF"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+zarr = "^2.14.2"
+xarray = "^2023.5.0"
+cfgrib = "^0.9.10.4"
+ocf-blosc2 = "^0.0.4"
+eccodes = "^1.5.2"
+ecmwflibs = "0.5.3"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+jedi = "^0.18.2"
+black = "^23.3.0"
+ruff = "^0.0.270"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+
+# [tool.mypy]
+# ignore_missing_imports = true

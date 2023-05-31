@@ -120,6 +120,7 @@ VARS_TO_DELETE = (
 @click.command()
 @click.option(
     "--source_grib_path_and_search_pattern",
+    "-s",
     default=(
         "/mnt/storage_b/data/ocf/solar_pv_nowcasting/nowcasting_dataset_pipeline/NWP/"
         "UK_Met_Office/UKV/native/*/*/*/*Wholesale[12].grib"
@@ -129,25 +130,32 @@ VARS_TO_DELETE = (
         ' For example "/foo/bar/*/*/*/*Wholesale[12].grib". Should be in double quotes.'
     ),
     type=Path,
+    show_default=True,
 )
 @click.option(
     "--destination_zarr_path",
+    "-d",
     help="The output Zarr path to write to. Will be appended to if already exists.",
     type=Path,
+    required=True,
 )
 @click.option(
     "--n_processes",
+    "-n",
     default=8,
     help=(
         "Optional. Defaults to 8. The number of processes to use for loading grib"
         " files in parallel."
     ),
+    show_default=True,
 )
 @click.option(
     "--log_level",
+    "-l",
     default="DEBUG",
     type=click.Choice(_LOG_LEVELS),
     help="Optional. Set the log level.",
+    show_default=True,
 )
 @click.option(
     "--log_filename",
@@ -165,6 +173,7 @@ VARS_TO_DELETE = (
         "  For example, if the search pattern includes Wholesale1 and Wholesale2 files, then set"
         " n_grib_files_per_nwp_init_time to 2."
     ),
+    show_default=True,
 )
 def main(
     source_grib_path_and_search_pattern: Path,

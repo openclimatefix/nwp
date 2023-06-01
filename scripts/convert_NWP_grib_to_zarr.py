@@ -207,6 +207,10 @@ def main(
         filenames=filenames, n_grib_files_per_nwp_init_time=n_grib_files_per_nwp_init_time
     )
 
+    if len(map_datetime_to_grib_filename) == 0:
+        logger.warning('No files left after "decode and group"')
+        return
+
     # Remove grib filenames which have already been processed:
     map_datetime_to_grib_filename = select_grib_filenames_still_to_process(
         map_datetime_to_grib_filename, destination_zarr_path
@@ -338,9 +342,11 @@ def decode_and_group_grib_filenames(
     def _filter_func(group):
         return group.count() == n_grib_files_per_nwp_init_time
 
-    map_datetime_to_filename = map_datetime_to_filename.groupby(level=0).filter(_filter_func)
+    map_datetime_to_filename = (
+        map_datetime_to_filename.groupby(level=0).filter(_filter_func).sort_index()
+    )
 
-    return map_datetime_to_filename.sort_index()
+    return map_datetime_to_filename
 
 
 def select_grib_filenames_still_to_process(
@@ -466,6 +472,10 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     the initialisation time and the target time).
     """
     logger.debug("Post-processing dataset...")
+
+    # At this point the "variables" are the Dataset's ... "data variables".
+    # Instead, we want a new "variable" dimension and only one "data variable", that we
+    # call "UKV".
     da = dataset.to_array(dim="variable", name="UKV")
 
     # to_array looks like it can sometimes change the order of the variables.
@@ -632,7 +642,7 @@ def process_grib_files_in_parallel(
 
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
-        for ds in pool.imap_unordered(
+        for ds in pool.imap(
             load_grib_files_for_nwp_init_time_with_exception_logging_and_timing,
             tasks,
         ):

@@ -623,7 +623,7 @@ def process_grib_files_in_parallel(
 
     # Run the processes!
     with multiprocessing.Pool(processes=n_processes) as pool:
-        for ds in pool.imap_unordered(
+        for ds in pool.imap(
             load_grib_files_for_nwp_init_time_with_exception_logging_and_timing,
             tasks,
         ):

@@ -480,8 +480,11 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
 
     # to_array looks like it can sometimes change the order of the variables.
     # So fix the order:
-    assert set(da["variable"].values) == set(NWP_VARIABLE_NAMES)
-    if not (da["variable"] == NWP_VARIABLE_NAMES).all():
+    # assert set(da["variable"].values) == set(NWP_VARIABLE_NAMES)
+    if (
+        len(da["variable"]) != len(NWP_VARIABLE_NAMES)
+        or not (da["variable"] == NWP_VARIABLE_NAMES).all()
+    ):
         logger.warning("Fixing the order of the NWP variable names.")
         da = da.reindex(variable=list(NWP_VARIABLE_NAMES))
 

@@ -249,7 +249,7 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--run",
-    default='12',
+    default="12",
     help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
 @click.option(

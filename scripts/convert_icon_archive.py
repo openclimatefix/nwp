@@ -7,29 +7,20 @@ Only ICON EU, seems to have all the variables?
 """
 
 import os
-import shutil
 from glob import glob
 
-import click
 import xarray as xr
 import zarr
 from huggingface_hub import HfApi
 from ocf_blosc2 import Blosc2
 
 from nwp.icon.consts import (
-    EU_PRESSURE_LEVELS,
     EU_VAR2D_LIST,
     EU_VAR3D_LIST,
-    GLOBAL_INVARIENT_LIST,
-    GLOBAL_PRESSURE_LEVELS,
-    GLOBAL_VAR2D_LIST,
-    GLOBAL_VAR3D_LIST,
 )
-from nwp.icon.utils import get_dset
 
-def process_model_files(
-        folder, date,  run="00"
-):
+
+def process_model_files(folder, date, run="00"):
     filename_datetime = f"{date}{run}"
     var_base = "icon-eu_europe_regular-lat-lon"
     var_3d_list = EU_VAR3D_LIST
@@ -83,7 +74,9 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(folder, f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2"),
+                os.path.join(
+                    folder, f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2"
+                ),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
@@ -131,8 +124,8 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
     encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
-            zarr_path,
-            mode="w",
+        zarr_path,
+        mode="w",
     ) as store:
         dataset_xr.chunk(chunking).to_zarr(store, encoding=encoding, compute=True)
     done = False
@@ -141,10 +134,10 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
             api.upload_file(
                 path_or_fileobj=zarr_path,
                 path_in_repo=f"data/{dataset_xr.time.dt.year.values}/"
-                             f"{dataset_xr.time.dt.month.values}/"
-                             f"{dataset_xr.time.dt.day.values}/"
-                             f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
-                             f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
+                f"{dataset_xr.time.dt.month.values}/"
+                f"{dataset_xr.time.dt.day.values}/"
+                f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
+                f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
                 repo_id="openclimatefix/dwd-icon-global"
                 if model == "global"
                 else "openclimatefix/dwd-icon-eu",
@@ -158,14 +151,15 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
         except Exception as e:
             print(e)
 
+
 if __name__ == "__main__":
     # Go through each date and process the data
     # Upload to HF
     folder = "/mnt/storage_c/ICON_DEXTER/"
-    for year in [2021,2022]:
-        for month in range(1,13):
-            for day in range(1,32):
-                for run in ["00","06","12","18"]:
+    for year in [2021, 2022]:
+        for month in range(1, 13):
+            for day in range(1, 32):
+                for run in ["00", "06", "12", "18"]:
                     date = f"{year}{str(month).zfill(2)}{str(day).zfill(2)}"
                     print(date)
                     ds = process_model_files(folder, date, run=run)

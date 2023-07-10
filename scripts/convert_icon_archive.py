@@ -44,7 +44,6 @@ def process_model_files(
                 glob(
                     os.path.join(
                         folder,
-                        run,
                         f"{var_base}_pressure-level_{filename_datetime}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
                     )
                 )
@@ -84,7 +83,7 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(folder, run, f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2"),
+                os.path.join(folder, f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2"),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",

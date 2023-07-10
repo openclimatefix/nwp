@@ -34,17 +34,18 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         var_2d_list = GLOBAL_VAR2D_LIST
         invariant = GLOBAL_INVARIENT_LIST
         pressure_levels = GLOBAL_PRESSURE_LEVELS
+        f_steps = list(range(0, 79))
     else:
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
+        f_steps = list(range(0, 79)) + list(range(81, 120, 3))
     for run in runs:
         run_folder = os.path.join(parent_folder, run)
         if not os.path.exists(run_folder):
             os.mkdir(run_folder)
 
-        f_steps = list(range(0, 73))
         vars_3d = [v + "@" + str(p) for v in var_3d_list for p in pressure_levels]
         vars_2d = var_2d_list
         not_done = True
@@ -87,12 +88,14 @@ def process_model_files(
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
+        f_steps = list(range(0, 79))
     else:
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         lons = None
         lats = None
+        f_steps = list(range(0, 79)) + list(range(81, 120, 3))
     datasets = []
     for var_3d in var_3d_list:
         print(var_3d)
@@ -106,7 +109,7 @@ def process_model_files(
                     )
                 )
             )
-            for s in range(73)
+            for s in f_steps
         ]
         try:
             ds = xr.concat(
@@ -241,12 +244,12 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--folder",
-    default=("/run/media/jacob/data/ICON/"),
+    default=("/run/media/jacob/data/DWD/"),
     help="Folder to put the raw and zarr in",
 )
 @click.option(
     "--run",
-    default=None,
+    default='12',
     help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
 @click.option(

@@ -459,7 +459,7 @@ def post_process_dataset(dataset: xr.Dataset) -> xr.Dataset:
     logger.debug("Post-processing dataset...")
     da = dataset.to_array(dim="variable", name="UKV")
 
-    assert len(da['variables']) <= len(NWP_VARIABLE_NAMES)
+    assert len(da["variables"]) <= len(NWP_VARIABLE_NAMES)
     # to_array looks like it can sometimes change the order of the variables.
     # So fix the order:
     # If some variables are missing, then reindexing will simply set those as NaN.

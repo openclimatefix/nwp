@@ -18,7 +18,34 @@ from nwp.icon.consts import (
     EU_VAR2D_LIST,
     EU_VAR3D_LIST,
 )
+import subprocess
 
+from pathlib import Path
+import tempfile
+import shutil
+def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
+    """
+    Decompresses .bz2 file and returns the non-compressed filename
+
+    Args:
+        full_bzip_filename: Full compressed filename
+        temp_pth: Temporary path to save the native file
+
+    Returns:
+        The full native filename to the decompressed file
+    """
+    base_bzip_filename = os.path.basename(full_bzip_filename)
+    base_nat_filename = os.path.splitext(base_bzip_filename)[0]
+    full_nat_filename = os.path.join(temp_pth, base_nat_filename)
+    if os.path.exists(full_nat_filename):
+        os.remove(full_nat_filename)
+    with open(full_nat_filename, "wb") as nat_file_handler:
+        process = subprocess.run(
+            ["pbzip2", "--decompress", "--keep", "--stdout", full_bzip_filename],
+            stdout=nat_file_handler,
+        )
+    process.check_returncode()
+    return full_nat_filename
 
 def process_model_files(folder, date, run="00"):
     filename_datetime = f"{date}{run}"
@@ -35,12 +62,21 @@ def process_model_files(folder, date, run="00"):
                 glob(
                     os.path.join(
                         folder,
-                        f"{var_base}_pressure-level_{filename_datetime}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
+                        f"{var_base}_pressure-level_{filename_datetime}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2.bz2",
                     )
                 )
             )
-            for s in range(73)
+            for s in list(range(0, 79)) + list(range(81, 120, 3))
         ]
+        # Now decompress each of them, so cfgrib can open them
+        temp_pth = tempfile.mkdtemp()
+        decompressed_paths = []
+        for set_of_paths in paths:
+            set_of_decompressed_paths = []
+            for p in set_of_paths:
+                set_of_decompressed_paths.append(decompress(Path(p), Path(temp_pth)))
+            decompressed_paths.append(set_of_decompressed_paths)
+        paths = decompressed_paths
         try:
             ds = xr.concat(
                 [
@@ -54,10 +90,12 @@ def process_model_files(folder, date, run="00"):
                     for p in paths
                 ],
                 dim="step",
-            ).sortby("step")
+            ).sortby("step").load()
         except Exception as e:
             print(e)
             continue
+        # Remove temporary directories and everything in them
+        shutil.rmtree(temp_pth)
         ds = ds.rename({v: var_3d for v in ds.data_vars})
         coords_to_remove = []
         for coord in ds.coords:
@@ -72,19 +110,33 @@ def process_model_files(folder, date, run="00"):
     total_dataset = []
     for var_2d in var_2d_list:
         print(var_2d)
+        # Get glob of all the files for this variable, then decompress them and return the paths
+        paths = list(
+            glob(
+                os.path.join(
+                    folder,
+                    f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2.bz2",
+                )
+            )
+        )
+        # Now decompress each of them, so cfgrib can open them
+        temp_pth2 = tempfile.mkdtemp()
+        decompressed_paths = []
+        for p in paths:
+            decompressed_paths.append(decompress(Path(p), Path(temp_pth2)))
+        paths = decompressed_paths
         try:
             ds = xr.open_mfdataset(
-                os.path.join(
-                    folder, f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2"
-                ),
+                paths,
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
                 backend_kwargs={"errors": "ignore"},
-            ).sortby("step")
+            ).sortby("step").load()
         except Exception as e:
             print(e)
             continue
+        shutil.rmtree(temp_pth2)
         # Rename data variable to name in list, so no conflicts
         ds = ds.rename({v: var_2d for v in ds.data_vars})
         # Remove extra coordinates that are not dimensions or time

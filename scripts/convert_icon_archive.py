@@ -21,8 +21,7 @@ from nwp.icon.consts import (
 import subprocess
 
 from pathlib import Path
-import tempfile
-import shutil
+
 def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     """
     Decompresses .bz2 file and returns the non-compressed filename
@@ -47,6 +46,25 @@ def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     process.check_returncode()
     return full_nat_filename
 
+
+def decompress_folder_of_files(folder, date, run):
+    filename_datetime = f"{date}{run}"
+    files = glob(
+        os.path.join(
+            folder,
+            f"*_{filename_datetime}_*.grib2.bz2",
+        )
+    )
+    # Make the folder, if it doesn't exist, for the date inside folder
+    new_folder = os.path.join(folder, date)
+    if not os.path.exists(new_folder):
+        os.mkdir(new_folder)
+    for f in files:
+        print(f)
+        decompress(Path(f), Path(new_folder))
+    return new_folder
+
+
 def process_model_files(folder, date, run="00"):
     filename_datetime = f"{date}{run}"
     var_base = "icon-eu_europe_regular-lat-lon"
@@ -62,21 +80,12 @@ def process_model_files(folder, date, run="00"):
                 glob(
                     os.path.join(
                         folder,
-                        f"{var_base}_pressure-level_{filename_datetime}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2.bz2",
+                        f"{var_base}_pressure-level_{filename_datetime}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
                     )
                 )
             )
             for s in list(range(0, 79)) + list(range(81, 120, 3))
         ]
-        # Now decompress each of them, so cfgrib can open them
-        temp_pth = tempfile.mkdtemp()
-        decompressed_paths = []
-        for set_of_paths in paths:
-            set_of_decompressed_paths = []
-            for p in set_of_paths:
-                set_of_decompressed_paths.append(decompress(Path(p), Path(temp_pth)))
-            decompressed_paths.append(set_of_decompressed_paths)
-        paths = decompressed_paths
         try:
             ds = xr.concat(
                 [
@@ -90,12 +99,11 @@ def process_model_files(folder, date, run="00"):
                     for p in paths
                 ],
                 dim="step",
-            ).sortby("step").load()
+            ).sortby("step")
         except Exception as e:
             print(e)
             continue
         # Remove temporary directories and everything in them
-        shutil.rmtree(temp_pth)
         ds = ds.rename({v: var_3d for v in ds.data_vars})
         coords_to_remove = []
         for coord in ds.coords:
@@ -115,16 +123,10 @@ def process_model_files(folder, date, run="00"):
             glob(
                 os.path.join(
                     folder,
-                    f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2.bz2",
+                    f"{var_base}_single-level_{filename_datetime}_*_{var_2d.upper()}.grib2",
                 )
             )
         )
-        # Now decompress each of them, so cfgrib can open them
-        temp_pth2 = tempfile.mkdtemp()
-        decompressed_paths = []
-        for p in paths:
-            decompressed_paths.append(decompress(Path(p), Path(temp_pth2)))
-        paths = decompressed_paths
         try:
             ds = xr.open_mfdataset(
                 paths,
@@ -132,11 +134,10 @@ def process_model_files(folder, date, run="00"):
                 combine="nested",
                 concat_dim="step",
                 backend_kwargs={"errors": "ignore"},
-            ).sortby("step").load()
+            ).sortby("step")
         except Exception as e:
             print(e)
             continue
-        shutil.rmtree(temp_pth2)
         # Rename data variable to name in list, so no conflicts
         ds = ds.rename({v: var_2d for v in ds.data_vars})
         # Remove extra coordinates that are not dimensions or time
@@ -176,8 +177,8 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
     encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
-        zarr_path,
-        mode="w",
+            zarr_path,
+            mode="w",
     ) as store:
         dataset_xr.chunk(chunking).to_zarr(store, encoding=encoding, compute=True)
     done = False
@@ -186,10 +187,10 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
             api.upload_file(
                 path_or_fileobj=zarr_path,
                 path_in_repo=f"data/{dataset_xr.time.dt.year.values}/"
-                f"{dataset_xr.time.dt.month.values}/"
-                f"{dataset_xr.time.dt.day.values}/"
-                f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
-                f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
+                             f"{dataset_xr.time.dt.month.values}/"
+                             f"{dataset_xr.time.dt.day.values}/"
+                             f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
+                             f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
                 repo_id="openclimatefix/dwd-icon-global"
                 if model == "global"
                 else "openclimatefix/dwd-icon-eu",
@@ -213,7 +214,9 @@ if __name__ == "__main__":
             for day in range(1, 32):
                 for run in ["00", "06", "12", "18"]:
                     date = f"{year}{str(month).zfill(2)}{str(day).zfill(2)}"
+                    # Decompress all files into a folder
+                    new_folder = decompress_folder_of_files(folder, date, run=run)
                     print(date)
-                    ds = process_model_files(folder, date, run=run)
-                    upload_to_hf(ds, folder, model="eu", run=run)
+                    ds = process_model_files(new_folder, date, run=run)
+                    upload_to_hf(ds, new_folder, model="eu", run=run)
                     print(f"Uploaded {date}{run} to HF successfully")

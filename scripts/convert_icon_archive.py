@@ -61,9 +61,8 @@ def decompress_folder_of_files(folder, date, run):
     if not os.path.exists(new_folder):
         os.mkdir(new_folder)
     pool = mp.Pool(mp.cpu_count()//8)
-    filenames = pool.starmap(decompress, [(Path(f), Path(new_folder)) for f in files])
+    pool.starmap(decompress, [(Path(f), Path(new_folder)) for f in files])
     # Move files in filenames to new_folder
-    pool.starmap(os.replace, [(f, os.path.join(new_folder, os.path.basename(f))) for f in filenames])
     return new_folder
 
 

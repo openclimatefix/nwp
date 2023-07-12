@@ -57,7 +57,7 @@ def decompress_folder_of_files(folder, date, run):
         )
     )
     # Make the folder, if it doesn't exist, for the date inside folder
-    new_folder = os.path.join(folder, date)
+    new_folder = os.path.join(folder, filename_datetime)
     if not os.path.exists(new_folder):
         os.mkdir(new_folder)
     pool = mp.Pool(mp.cpu_count()//8)

@@ -38,13 +38,14 @@ def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     base_nat_filename = os.path.splitext(base_bzip_filename)[0]
     full_nat_filename = os.path.join(temp_pth, base_nat_filename)
     if os.path.exists(full_nat_filename):
-        os.remove(full_nat_filename)
+        return full_nat_filename # Don't decompress a second time
     with open(full_nat_filename, "wb") as nat_file_handler:
         process = subprocess.run(
             ["pbzip2", "--decompress", "--keep", "--stdout", full_bzip_filename],
             stdout=nat_file_handler,
         )
     process.check_returncode()
+    print(f"Finished decompressing {full_bzip_filename}")
     return full_nat_filename
 
 
@@ -60,7 +61,7 @@ def decompress_folder_of_files(folder, date, run):
     new_folder = os.path.join(folder, filename_datetime)
     if not os.path.exists(new_folder):
         os.mkdir(new_folder)
-    pool = mp.Pool(mp.cpu_count()//8)
+    pool = mp.Pool(6)
     pool.starmap(decompress, [(Path(f), Path(new_folder)) for f in files])
     # Move files in filenames to new_folder
     return new_folder

@@ -21,6 +21,7 @@ from nwp.icon.consts import (
 import subprocess
 
 from pathlib import Path
+import multiprocessing as mp
 
 def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     """
@@ -59,9 +60,10 @@ def decompress_folder_of_files(folder, date, run):
     new_folder = os.path.join(folder, date)
     if not os.path.exists(new_folder):
         os.mkdir(new_folder)
-    for f in files:
-        print(f)
-        decompress(Path(f), Path(new_folder))
+    pool = mp.Pool(mp.cpu_count()//8)
+    filenames = pool.starmap(decompress, [(Path(f), Path(new_folder)) for f in files])
+    # Move files in filenames to new_folder
+    pool.starmap(os.replace, [(f, os.path.join(new_folder, os.path.basename(f))) for f in filenames])
     return new_folder
 
 

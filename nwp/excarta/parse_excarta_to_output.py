@@ -4,9 +4,15 @@ import pandas as pd
 import numpy as np
 import datetime
 import os
-import pathlib as Path
+import pathlib
 from datetime import datetime
+import argparse
 
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("output", type=pathlib.Path, help="Output zarr file")
+    return parser.parse_args()
 
 # sort the data into the correct format
 def data_loader(folder_path):
@@ -38,7 +44,7 @@ def load_data_from_all_years(parent_folder_path):
     all_dataframes = []
 
     # Loop over each year's folder and call the folder_data_load_sorted function
-    for year in range(2018, 2022):
+    for year in range(2018, 2019):
         folder_path = os.path.join(parent_folder_path, str(year))
         dataframes = data_loader(folder_path)
         all_dataframes.extend(dataframes)
@@ -51,13 +57,12 @@ def pdtocdf(dfs):
     merged_df = pd.concat(dfs, ignore_index=True)
     
     ds = xr.Dataset.from_dataframe(merged_df)
-    ds = ds.set_index(index=['init_time', 'step']).unstack('index')
+    ds = ds.set_index(index=['init_time', 'step','Latitude','Longitude']).unstack('index')    
+    # ds = ds.assign_coords(latitude=ds["Latitude"])
+    # ds = ds.assign_coords(longitude=ds["Longitude"])
     
-    ds = ds.assign_coords(latitude=ds["Latitude"])
-    ds = ds.assign_coords(longitude=ds["Longitude"])
-    
-    ds = ds.drop("Latitude")
-    ds = ds.drop("Longitude")
+    # ds = ds.drop("Latitude")
+    # ds = ds.drop("Longitude")
     
     ds = ds.drop_vars(["LocationId", "DateTimeUTC"])
     
@@ -74,15 +79,23 @@ def pdtocdf(dfs):
     ds = ds.sortby('step')
     ds = ds.sortby('init_time')
 
+    ds = ds.rename({"Latitude": "y", "Longitude": "x"})
+
     return ds
 
 
 
 def main():
 
+    args = _parse_args()
+
+    if args.output.exists():
+        raise RuntimeError(f'Output file "{args.output}" already exist')
+
+
     PATH = "/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/solar_data"
     dfs = load_data_from_all_years(PATH)
     ds = pdtocdf(dfs)
-    ds.to_zarr('excarta_SI.nc')
+    ds.to_zarr(args.output)
 
 main()

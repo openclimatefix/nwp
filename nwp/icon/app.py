@@ -21,7 +21,6 @@ from nwp.icon.utils import get_dset
 
 
 def download_model_files(runs=None, parent_folder=None, model="global"):
-    """ """
     if runs is None:
         runs = [
             "00",

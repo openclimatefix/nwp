@@ -87,14 +87,14 @@ def process_model_files(
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
-        f_steps = list(range(0, 79))
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
     else:
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         lons = None
         lats = None
-        f_steps = list(range(0, 79)) + list(range(81, 120, 3))
+        f_steps = list(range(0, 79)) + list(range(81, 123, 3))
     datasets = []
     for var_3d in var_3d_list:
         print(var_3d)

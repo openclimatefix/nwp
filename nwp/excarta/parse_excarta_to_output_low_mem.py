@@ -42,7 +42,7 @@ def data_loader(folder_path):
 def load_data_from_all_years(parent_folder_path):
     all_datasets = []
 
-    for year in range(2017, 2018):
+    for year in range(2017, 2019):
         folder_path = os.path.join(parent_folder_path, str(year))
         datasets = data_loader(folder_path)
         all_datasets.extend(datasets)
@@ -61,8 +61,9 @@ def pdtocdf(datasets):
 
     ds = xr.concat(datasets, dim='index')
 
+    # Going to unstack and then combine in a different script
     # Get rid of the index dimension and just keep the desired ones
-    ds = ds.unstack('index')
+    # ds = ds.unstack('index')
     
     var_names = ds.data_vars
     d2 = xr.concat([ds[v] for v in var_names], dim="variable")
@@ -85,6 +86,9 @@ def main():
     ds = pdtocdf(datasets)
 
     print(ds)
+
+    ds = ds.unstack('index')
+
     ds.to_zarr(args.output)
     
 

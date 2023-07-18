@@ -67,13 +67,21 @@ def pdtocdf(datasets):
 
     ds = xr.concat(datasets, dim='index')
 
+    # # Define the specific range of x and y coordinates to filter the data on
+    # x_range = (-10, 2)  # Example x coordinate range
+    # y_range = (49, 59)  # Example y coordinate range
+
+    ds = ds.rename({"Latitude": "y", "Longitude": "x"})
+    
+
+
     var_names = ds.data_vars
     d2 = xr.concat([ds[v] for v in var_names], dim="variable")
     d2 = d2.assign_coords(variable=("variable", var_names))
     ds = xr.Dataset(dict(value=d2))
     ds = ds.sortby('step')
     ds = ds.sortby('init_time')
-    ds = ds.rename({"Latitude": "y", "Longitude": "x"})
+    
 
     return ds
 
@@ -89,14 +97,23 @@ def main():
     datasets = load_data_from_all_years(PATH, month_to_process)
     ds = pdtocdf(datasets)
 
+    print(ds.dims)
+    print(ds.coords)
+
+    # ds = ds.sel(x=slice(float(-10), float(2)), y=slice(float(49), float(59)))
+
     print(ds)
     ds = ds.unstack('index')
+
+    ds_filt = ds.sel(x=slice(float(13), float(15)), y=slice(float(35), float(37)))
+
+    print(ds_filt)
 
     file_ending = ".zarr"
 
     # Create output directory name including the year and month to process
     output_name = f"{args.output}{args.year}{args.month:02d}{file_ending}"
-    ds.to_zarr(output_name)
+    ds_filt.to_zarr(output_name)
 
 
 # Check if script is being run directly

@@ -4,7 +4,7 @@
 SCRIPT_PATH="/home/zak/nwp/nwp/excarta/parse_excarta_monthly.py"
 
 # Output directory for the Zarr files
-OUTPUT_DIRECTORY="/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/zarr_format/r3/full_v1_"
+OUTPUT_DIRECTORY="/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/zarr_format/r4/UK_excarta_"
 
 # Iterate over the range of years
 for year in {2018..2022}

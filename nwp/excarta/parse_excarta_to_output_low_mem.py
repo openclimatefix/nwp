@@ -1,11 +1,10 @@
-import xarray as xr
-import pandas as pd
-import numpy as np
-import datetime
+#Low memory script
 import os
-import pathlib
 from datetime import datetime
+import pandas as pd
+import xarray as xr
 import argparse
+import pathlib
 
 
 def _parse_args():
@@ -16,53 +15,55 @@ def _parse_args():
 
 def data_loader(folder_path):
     """
-    Loads and transforms data from CSV files in the given folder_path.
+    Loads and transforms data from CSV files in the given folder_path and directly convert each DataFrame into an xarray Dataset.
     """
     column_names = ['DateTimeUTC', 'LocationId', 'Latitude', 'Longitude', 'dni', 'dhi', 'ghi']
     files = os.listdir(folder_path)
-    dfs = []
+    datasets = []
 
     for filename in files:
         if filename.endswith(".csv") and not filename.startswith("._"):
             file_path = os.path.join(folder_path, filename)
+
             df = pd.read_csv(file_path, header=None, names=column_names, parse_dates=['DateTimeUTC'])
-
-            datetime_str = filename[:-4] 
+            datetime_str = filename[:-4]
             datetime_obj = datetime.strptime(datetime_str, "%Y%m%d%H")
-
             df['step'] = (df['DateTimeUTC'] - datetime_obj).dt.total_seconds() / 3600  # convert timedelta to hours
             df['init_time'] = datetime_obj
-            dfs.append(df)
 
-    return dfs
+            # Convert the dataframe to an xarray Dataset and append to the list
+            ds = xr.Dataset.from_dataframe(df)
+            ds = ds.drop_vars(["LocationId", "DateTimeUTC"])
+            datasets.append(ds)
+
+    return datasets
 
 
 def load_data_from_all_years(parent_folder_path):
-    """
-    Loads data from all the year folders under the parent path.
-    """
-    all_dataframes = []
+    all_datasets = []
 
-    
-    # Actual date range is 2018 to 2022 (for in range use (2018,2023))
-    for year in range(2018, 2019):
+    for year in range(2017, 2018):
         folder_path = os.path.join(parent_folder_path, str(year))
-        dataframes = data_loader(folder_path)
-        all_dataframes.extend(dataframes)
+        datasets = data_loader(folder_path)
+        all_datasets.extend(datasets)
 
-    return all_dataframes
+    return all_datasets
 
 
-def pdtocdf(dfs):
+def pdtocdf(datasets):
     """
-    Converts pandas dataframe to an xarray dataset.
+    Processes the xarray Datasets and merges them.
     """
-    merged_df = pd.concat(dfs, ignore_index=True)
+    print(datasets)
+#     ds = xr.merge(datasets)
 
-    ds = xr.Dataset.from_dataframe(merged_df)
-    ds = ds.set_index(index=['init_time', 'step','Latitude','Longitude']).unstack('index')    
-    ds = ds.drop_vars(["LocationId", "DateTimeUTC"])
+    datasets = [ds.set_index(index=['init_time', 'step', 'Latitude', 'Longitude']) for ds in datasets]
 
+    ds = xr.concat(datasets, dim='index')
+
+    # Get rid of the index dimension and just keep the desired ones
+    ds = ds.unstack('index')
+    
     var_names = ds.data_vars
     d2 = xr.concat([ds[v] for v in var_names], dim="variable")
     d2 = d2.assign_coords(variable=("variable", var_names))
@@ -73,20 +74,20 @@ def pdtocdf(dfs):
 
     return ds
 
-
 def main():
-    """
-    Main function to control the flow of the script.
-    """
     args = _parse_args()
 
     if args.output.exists():
         raise RuntimeError(f'Output file "{args.output}" already exist')
 
     PATH = "/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/solar_data"
-    dfs = load_data_from_all_years(PATH)
-    ds = pdtocdf(dfs)
+    datasets = load_data_from_all_years(PATH)
+    ds = pdtocdf(datasets)
+
+    print(ds)
     ds.to_zarr(args.output)
+    
+
 
 
 # Check if script is being run directly

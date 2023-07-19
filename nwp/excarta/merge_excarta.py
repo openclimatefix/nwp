@@ -1,21 +1,20 @@
 # import libs
-import xarray as xr
-import pandas as pd
-import numpy as np
-import datetime
 import os
-import pathlib as Path
-from datetime import datetime
-import zarr
-import ocf_blosc2
+
+import xarray as xr
+
 
 
 def merge_zarr_files(zarr_path, merged_zarr_path):
     # Collect paths of Zarr files in the specified directory
     zarr_files = [
+<<<<<<< HEAD
         os.path.join(zarr_path, file)
         for file in os.listdir(zarr_path)
         if file.endswith(".zarr")
+=======
+        os.path.join(zarr_path, file) for file in os.listdir(zarr_path) if file.endswith(".zarr")
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ]
 
     print("1")
@@ -30,7 +29,7 @@ def merge_zarr_files(zarr_path, merged_zarr_path):
 
     # Iterate over the remaining Zarr files and merge them into the initial dataset
     for file in zarr_files[1:]:
-        ds = xr.open_zarr(file)
+        xr.open_zarr(file)
         print(file)
 
         # ds_filt = ds.sel(x=slice(*x_range), y=slice(*y_range))

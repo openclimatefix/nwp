@@ -1,11 +1,11 @@
-import xarray as xr
-import pandas as pd
-import numpy as np
+import argparse
 import datetime
 import os
 import pathlib
 from datetime import datetime
-import argparse
+
+import pandas as pd
+import xarray as xr
 
 
 def _parse_args():
@@ -18,6 +18,7 @@ def data_loader(folder_path):
     """
     Loads and transforms data from CSV files in the given folder_path.
     """
+<<<<<<< HEAD
     column_names = [
         "DateTimeUTC",
         "LocationId",
@@ -27,6 +28,9 @@ def data_loader(folder_path):
         "dhi",
         "ghi",
     ]
+=======
+    column_names = ["DateTimeUTC", "LocationId", "Latitude", "Longitude", "dni", "dhi", "ghi"]
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     files = os.listdir(folder_path)
     dfs = []
 
@@ -71,9 +75,13 @@ def pdtocdf(dfs):
     merged_df = pd.concat(dfs, ignore_index=True)
 
     ds = xr.Dataset.from_dataframe(merged_df)
+<<<<<<< HEAD
     ds = ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]).unstack(
         "index"
     )
+=======
+    ds = ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]).unstack("index")
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ds = ds.drop_vars(["LocationId", "DateTimeUTC"])
 
     var_names = ds.data_vars

@@ -1,10 +1,15 @@
 # Low memory script
+<<<<<<< HEAD
+=======
+import argparse
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
 import os
+import pathlib
 from datetime import datetime
+
 import pandas as pd
 import xarray as xr
-import argparse
-import pathlib
+
 
 
 def _parse_args():
@@ -21,6 +26,7 @@ def data_loader(folder_path, month_to_process):
     Only process files for the month 'YYYYMM' given by month_to_process
     """
     month_to_process = datetime.strptime(month_to_process, "%Y%m")
+<<<<<<< HEAD
     column_names = [
         "DateTimeUTC",
         "LocationId",
@@ -30,6 +36,9 @@ def data_loader(folder_path, month_to_process):
         "dhi",
         "ghi",
     ]
+=======
+    column_names = ["DateTimeUTC", "LocationId", "Latitude", "Longitude", "dni", "dhi", "ghi"]
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     files = os.listdir(folder_path)
     datasets = []
 
@@ -42,10 +51,14 @@ def data_loader(folder_path, month_to_process):
             ):
                 file_path = os.path.join(folder_path, filename)
                 df = pd.read_csv(
+<<<<<<< HEAD
                     file_path,
                     header=None,
                     names=column_names,
                     parse_dates=["DateTimeUTC"],
+=======
+                    file_path, header=None, names=column_names, parse_dates=["DateTimeUTC"]
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
                 )
 
                 df["step"] = (
@@ -80,8 +93,12 @@ def pdtocdf(datasets):
     """
 
     datasets = [
+<<<<<<< HEAD
         ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
         for ds in datasets
+=======
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
+>>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ]
 
     ds = xr.concat(datasets, dim="index")
@@ -109,7 +126,9 @@ def main():
         raise RuntimeError(f'Output file "{args.output}" already exist')
 
     PATH = "/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/solar_data"
-    month_to_process = f"{args.year}{args.month:02d}"  # combine year and month arguments into the required format
+    month_to_process = (
+        f"{args.year}{args.month:02d}"  # combine year and month arguments into the required format
+    )
     datasets = load_data_from_all_years(PATH, month_to_process)
     ds = pdtocdf(datasets)
 

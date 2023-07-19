@@ -1,8 +1,4 @@
 # Low memory script
-<<<<<<< HEAD
-=======
-import argparse
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
 import os
 import pathlib
 from datetime import datetime
@@ -26,7 +22,6 @@ def data_loader(folder_path, month_to_process):
     Only process files for the month 'YYYYMM' given by month_to_process
     """
     month_to_process = datetime.strptime(month_to_process, "%Y%m")
-<<<<<<< HEAD
     column_names = [
         "DateTimeUTC",
         "LocationId",
@@ -36,9 +31,6 @@ def data_loader(folder_path, month_to_process):
         "dhi",
         "ghi",
     ]
-=======
-    column_names = ["DateTimeUTC", "LocationId", "Latitude", "Longitude", "dni", "dhi", "ghi"]
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     files = os.listdir(folder_path)
     datasets = []
 
@@ -51,14 +43,10 @@ def data_loader(folder_path, month_to_process):
             ):
                 file_path = os.path.join(folder_path, filename)
                 df = pd.read_csv(
-<<<<<<< HEAD
                     file_path,
                     header=None,
                     names=column_names,
                     parse_dates=["DateTimeUTC"],
-=======
-                    file_path, header=None, names=column_names, parse_dates=["DateTimeUTC"]
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
                 )
 
                 df["step"] = (
@@ -93,12 +81,8 @@ def pdtocdf(datasets):
     """
 
     datasets = [
-<<<<<<< HEAD
         ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
         for ds in datasets
-=======
-        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ]
 
     ds = xr.concat(datasets, dim="index")

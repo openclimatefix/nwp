@@ -1,8 +1,4 @@
 # Low memory script
-<<<<<<< HEAD
-=======
-import argparse
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
 import os
 import pathlib
 from datetime import datetime
@@ -21,7 +17,6 @@ def data_loader(folder_path):
     """
     Loads and transforms data from CSV files in the given folder_path and directly convert each DataFrame into an xarray Dataset.
     """
-<<<<<<< HEAD
     column_names = [
         "DateTimeUTC",
         "LocationId",
@@ -31,9 +26,6 @@ def data_loader(folder_path):
         "dhi",
         "ghi",
     ]
-=======
-    column_names = ["DateTimeUTC", "LocationId", "Latitude", "Longitude", "dni", "dhi", "ghi"]
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     files = os.listdir(folder_path)
     datasets = []
 
@@ -78,12 +70,8 @@ def pdtocdf(datasets):
     #     ds = xr.merge(datasets)
 
     datasets = [
-<<<<<<< HEAD
         ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
         for ds in datasets
-=======
-        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ]
 
     ds = xr.concat(datasets, dim="index")

@@ -8,13 +8,9 @@ import xarray as xr
 def merge_zarr_files(zarr_path, merged_zarr_path):
     # Collect paths of Zarr files in the specified directory
     zarr_files = [
-<<<<<<< HEAD
         os.path.join(zarr_path, file)
         for file in os.listdir(zarr_path)
         if file.endswith(".zarr")
-=======
-        os.path.join(zarr_path, file) for file in os.listdir(zarr_path) if file.endswith(".zarr")
->>>>>>> ed1125f2aadcc4f6ea53290fe7b2f87e027a025d
     ]
 
     print("1")

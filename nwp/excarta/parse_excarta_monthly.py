@@ -1,10 +1,11 @@
-#Low memory script
+# Low memory script
 import os
 from datetime import datetime
 import pandas as pd
 import xarray as xr
 import argparse
 import pathlib
+
 
 def _parse_args():
     parser = argparse.ArgumentParser()
@@ -14,14 +15,21 @@ def _parse_args():
     return parser.parse_args()
 
 
-
 def data_loader(folder_path, month_to_process):
     """
     Loads and transforms data from CSV files in the given folder_path and directly convert each DataFrame into an xarray Dataset.
     Only process files for the month 'YYYYMM' given by month_to_process
     """
     month_to_process = datetime.strptime(month_to_process, "%Y%m")
-    column_names = ['DateTimeUTC', 'LocationId', 'Latitude', 'Longitude', 'dni', 'dhi', 'ghi']
+    column_names = [
+        "DateTimeUTC",
+        "LocationId",
+        "Latitude",
+        "Longitude",
+        "dni",
+        "dhi",
+        "ghi",
+    ]
     files = os.listdir(folder_path)
     datasets = []
 
@@ -29,13 +37,21 @@ def data_loader(folder_path, month_to_process):
         if filename.endswith(".csv") and not filename.startswith("._"):
             file_datetime = datetime.strptime(filename[:-4], "%Y%m%d%H")
 
-            if (file_datetime.year == month_to_process.year) and (file_datetime.month == month_to_process.month):
-
+            if (file_datetime.year == month_to_process.year) and (
+                file_datetime.month == month_to_process.month
+            ):
                 file_path = os.path.join(folder_path, filename)
-                df = pd.read_csv(file_path, header=None, names=column_names, parse_dates=['DateTimeUTC'])
-    
-                df['step'] = (df['DateTimeUTC'] - file_datetime).dt.total_seconds() / 3600  # convert timedelta to hours
-                df['init_time'] = file_datetime
+                df = pd.read_csv(
+                    file_path,
+                    header=None,
+                    names=column_names,
+                    parse_dates=["DateTimeUTC"],
+                )
+
+                df["step"] = (
+                    df["DateTimeUTC"] - file_datetime
+                ).dt.total_seconds() / 3600  # convert timedelta to hours
+                df["init_time"] = file_datetime
 
                 # Convert the dataframe to an xarray Dataset and append to the list
                 ds = xr.Dataset.from_dataframe(df)
@@ -62,26 +78,26 @@ def pdtocdf(datasets):
     """
     Processes the xarray Datasets and merges them.
     """
-    
-    datasets = [ds.set_index(index=['init_time', 'step', 'Latitude', 'Longitude']) for ds in datasets]
 
-    ds = xr.concat(datasets, dim='index')
+    datasets = [
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
+        for ds in datasets
+    ]
+
+    ds = xr.concat(datasets, dim="index")
 
     # # Define the specific range of x and y coordinates to filter the data on
     # x_range = (-10, 2)  # Example x coordinate range
     # y_range = (49, 59)  # Example y coordinate range
 
     ds = ds.rename({"Latitude": "y", "Longitude": "x"})
-    
-
 
     var_names = ds.data_vars
     d2 = xr.concat([ds[v] for v in var_names], dim="variable")
     d2 = d2.assign_coords(variable=("variable", var_names))
     ds = xr.Dataset(dict(value=d2))
-    ds = ds.sortby('step')
-    ds = ds.sortby('init_time')
-    
+    ds = ds.sortby("step")
+    ds = ds.sortby("init_time")
 
     return ds
 
@@ -103,7 +119,7 @@ def main():
     # ds = ds.sel(x=slice(float(-10), float(2)), y=slice(float(49), float(59)))
 
     print(ds)
-    ds = ds.unstack('index')
+    ds = ds.unstack("index")
 
     ds_filt = ds.sel(x=slice(float(13), float(15)), y=slice(float(35), float(37)))
 

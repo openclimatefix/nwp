@@ -1,4 +1,4 @@
-#Low memory script
+# Low memory script
 import os
 from datetime import datetime
 import pandas as pd
@@ -17,7 +17,15 @@ def data_loader(folder_path):
     """
     Loads and transforms data from CSV files in the given folder_path and directly convert each DataFrame into an xarray Dataset.
     """
-    column_names = ['DateTimeUTC', 'LocationId', 'Latitude', 'Longitude', 'dni', 'dhi', 'ghi']
+    column_names = [
+        "DateTimeUTC",
+        "LocationId",
+        "Latitude",
+        "Longitude",
+        "dni",
+        "dhi",
+        "ghi",
+    ]
     files = os.listdir(folder_path)
     datasets = []
 
@@ -25,11 +33,15 @@ def data_loader(folder_path):
         if filename.endswith(".csv") and not filename.startswith("._"):
             file_path = os.path.join(folder_path, filename)
 
-            df = pd.read_csv(file_path, header=None, names=column_names, parse_dates=['DateTimeUTC'])
+            df = pd.read_csv(
+                file_path, header=None, names=column_names, parse_dates=["DateTimeUTC"]
+            )
             datetime_str = filename[:-4]
             datetime_obj = datetime.strptime(datetime_str, "%Y%m%d%H")
-            df['step'] = (df['DateTimeUTC'] - datetime_obj).dt.total_seconds() / 3600  # convert timedelta to hours
-            df['init_time'] = datetime_obj
+            df["step"] = (
+                df["DateTimeUTC"] - datetime_obj
+            ).dt.total_seconds() / 3600  # convert timedelta to hours
+            df["init_time"] = datetime_obj
 
             # Convert the dataframe to an xarray Dataset and append to the list
             ds = xr.Dataset.from_dataframe(df)
@@ -55,25 +67,29 @@ def pdtocdf(datasets):
     Processes the xarray Datasets and merges them.
     """
     print(datasets)
-#     ds = xr.merge(datasets)
+    #     ds = xr.merge(datasets)
 
-    datasets = [ds.set_index(index=['init_time', 'step', 'Latitude', 'Longitude']) for ds in datasets]
+    datasets = [
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
+        for ds in datasets
+    ]
 
-    ds = xr.concat(datasets, dim='index')
+    ds = xr.concat(datasets, dim="index")
 
     # Going to unstack and then combine in a different script
     # Get rid of the index dimension and just keep the desired ones
     # ds = ds.unstack('index')
-    
+
     var_names = ds.data_vars
     d2 = xr.concat([ds[v] for v in var_names], dim="variable")
     d2 = d2.assign_coords(variable=("variable", var_names))
     ds = xr.Dataset(dict(value=d2))
-    ds = ds.sortby('step')
-    ds = ds.sortby('init_time')
+    ds = ds.sortby("step")
+    ds = ds.sortby("init_time")
     ds = ds.rename({"Latitude": "y", "Longitude": "x"})
 
     return ds
+
 
 def main():
     args = _parse_args()
@@ -87,11 +103,9 @@ def main():
 
     print(ds)
 
-    ds = ds.unstack('index')
+    ds = ds.unstack("index")
 
     ds.to_zarr(args.output)
-    
-
 
 
 # Check if script is being run directly

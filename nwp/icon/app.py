@@ -33,13 +33,13 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         var_2d_list = GLOBAL_VAR2D_LIST
         invariant = GLOBAL_INVARIENT_LIST
         pressure_levels = GLOBAL_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 123, 3)) # 5 days
+        f_steps = list(range(0, 79)) + list(range(81, 123, 3))  # 5 days
     for run in runs:
         run_folder = os.path.join(parent_folder, run)
         if not os.path.exists(run_folder):
@@ -69,25 +69,38 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
 
 
 def process_model_files(
-    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00"
+    folder,
+    var_3d_list=None,
+    var_2d_list=None,
+    invariant_list=None,
+    model="global",
+    run="00",
 ):
     if model == "global":
         var_base = "icon_global_icosahedral"
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")
+                )
+            )[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lat_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")
+                )
+            )[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST
@@ -143,7 +156,9 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
+                os.path.join(
+                    folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"
+                ),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
@@ -188,7 +203,9 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00", token=None):
             "longitude": 350,
             "isobaricInhPa": -1,
         }
-    encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
+    encoding = {
+        var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars
+    }
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
         zarr_path,

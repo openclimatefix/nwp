@@ -85,6 +85,9 @@ def pdtocdf(datasets):
 
     ds = xr.concat(datasets, dim="index")
 
+    # Subtract one hour from the init_time dimension
+    ds['init_time'] = ds['init_time'] - pd.Timedelta(hours=1)   
+
     # # Define the specific range of x and y coordinates to filter the data on
     # x_range = (-10, 2)  # Example x coordinate range
     # y_range = (49, 59)  # Example y coordinate range

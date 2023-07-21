@@ -70,8 +70,7 @@ def pdtocdf(datasets):
     #     ds = xr.merge(datasets)
 
     datasets = [
-        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
-        for ds in datasets
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
     ]
 
     ds = xr.concat(datasets, dim="index")

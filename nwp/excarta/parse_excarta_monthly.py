@@ -1,11 +1,11 @@
 # Low memory script
+import argparse
 import os
 import pathlib
 from datetime import datetime
 
 import pandas as pd
 import xarray as xr
-import argparse
 
 
 def _parse_args():
@@ -81,8 +81,7 @@ def pdtocdf(datasets):
     """
 
     datasets = [
-        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
-        for ds in datasets
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
     ]
 
     ds = xr.concat(datasets, dim="index")
@@ -110,7 +109,9 @@ def main():
         raise RuntimeError(f'Output file "{args.output}" already exist')
 
     PATH = "/mnt/storage_b/data/ocf/solar_pv_nowcasting/experimental/Excarta/sr_UK_Malta_full/solar_data"
-    month_to_process = f"{args.year}{args.month:02d}"  # combine year and month arguments into the required format
+    month_to_process = (
+        f"{args.year}{args.month:02d}"  # combine year and month arguments into the required format
+    )
     datasets = load_data_from_all_years(PATH, month_to_process)
     ds = pdtocdf(datasets)
 
@@ -122,7 +123,7 @@ def main():
     print(ds)
     ds = ds.unstack("index")
 
-    # selecting data based on just a sinlge point for Malta, 
+    # selecting data based on just a sinlge point for Malta,
     # TO DO: this would get change to be a slice for the future
     ds_filt = ds.sel(x=14, y=36)
 

@@ -1,16 +1,15 @@
 # import libs
-import os
-import xarray as xr
 import argparse
+import os
 import pathlib
+
 import numpy as np
+import xarray as xr
 
 
 def _parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "input", type=pathlib.Path, help="Path to folder containing files"
-    )
+    parser.add_argument("input", type=pathlib.Path, help="Path to folder containing files")
     parser.add_argument(
         "output",
         type=pathlib.Path,
@@ -22,9 +21,7 @@ def _parse_args():
 def merge_zarr_files(zarr_path, merged_zarr_path):
     # Collect paths of Zarr files in the specified directory
     zarr_files = [
-        os.path.join(zarr_path, file)
-        for file in os.listdir(zarr_path)
-        if file.endswith(".zarr")
+        os.path.join(zarr_path, file) for file in os.listdir(zarr_path) if file.endswith(".zarr")
     ]
 
     # Open the datasets and store them in a list

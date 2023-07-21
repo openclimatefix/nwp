@@ -7,8 +7,6 @@ from datetime import datetime
 import pandas as pd
 import xarray as xr
 
-import argparse
-
 
 def _parse_args():
     parser = argparse.ArgumentParser()
@@ -73,9 +71,7 @@ def pdtocdf(dfs):
     merged_df = pd.concat(dfs, ignore_index=True)
 
     ds = xr.Dataset.from_dataframe(merged_df)
-    ds = ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]).unstack(
-        "index"
-    )
+    ds = ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]).unstack("index")
     ds = ds.drop_vars(["LocationId", "DateTimeUTC"])
 
     var_names = ds.data_vars

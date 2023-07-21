@@ -7,7 +7,6 @@ import pandas as pd
 import xarray as xr
 import argparse
 
-
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=pathlib.Path, help="Output zarr file")
@@ -81,8 +80,7 @@ def pdtocdf(datasets):
     """
 
     datasets = [
-        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"])
-        for ds in datasets
+        ds.set_index(index=["init_time", "step", "Latitude", "Longitude"]) for ds in datasets
     ]
 
     ds = xr.concat(datasets, dim="index")

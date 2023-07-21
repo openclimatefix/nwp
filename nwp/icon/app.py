@@ -81,20 +81,12 @@ def process_model_files(
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
-            list(
-                glob(
-                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")
-                )
-            )[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lat_ds = xr.open_dataset(
-            list(
-                glob(
-                    os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")
-                )
-            )[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
@@ -156,9 +148,7 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(
-                    folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"
-                ),
+                os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
@@ -203,9 +193,7 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00", token=None):
             "longitude": 350,
             "isobaricInhPa": -1,
         }
-    encoding = {
-        var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars
-    }
+    encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
         zarr_path,

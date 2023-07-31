@@ -1,10 +1,11 @@
+import argparse
 import os
+import pathlib
 from datetime import datetime
-import xarray as xr
+
 import gcsfs
 import numpy as np
-import argparse
-import pathlib
+import xarray as xr
 
 
 def _parse_args():
@@ -34,9 +35,7 @@ def extract_files(args):
         date_part = filename.split(".")[0]  # adjust this line if necessary
 
         # # convert date_part into a datetime
-        date = datetime.strptime(
-            date_part, "%Y%m%d%H"
-        )  # adjust format string if necessary
+        date = datetime.strptime(date_part, "%Y%m%d%H")  # adjust format string if necessary
 
         print(date)
         # convert the date to numpy datetime64
@@ -85,7 +84,6 @@ def main():
 
     output_path = f"{args.output}/excarta_{args.year}.zarr"
 
-
     # if args.output.exists() and not args.force:
     #     raise RuntimeError(f'Output file "{args.output}" already exist')
 
@@ -93,7 +91,6 @@ def main():
     print("merging zarrs")
     ds_merged = merged_zarrs(datasets)
     print("zarrs merged")
-
 
     ds_merged.to_zarr(output_path)
 

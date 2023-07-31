@@ -7,6 +7,7 @@ from datetime import datetime
 import pandas as pd
 import xarray as xr
 
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=pathlib.Path, help="Output zarr file")
@@ -86,7 +87,7 @@ def pdtocdf(datasets):
     ds = xr.concat(datasets, dim="index")
 
     # Subtract one hour from the init_time dimension
-    ds['init_time'] = ds['init_time'] - pd.Timedelta(hours=1)   
+    ds["init_time"] = ds["init_time"] - pd.Timedelta(hours=1)
 
     # # Define the specific range of x and y coordinates to filter the data on
     # x_range = (-10, 2)  # Example x coordinate range

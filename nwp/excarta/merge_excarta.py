@@ -1,16 +1,15 @@
 # import libs
-import os
-import xarray as xr
 import argparse
+import os
 import pathlib
+
 import numpy as np
+import xarray as xr
 
 
 def _parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "input", type=pathlib.Path, help="Path to folder containing files"
-    )
+    parser.add_argument("input", type=pathlib.Path, help="Path to folder containing files")
     parser.add_argument(
         "output",
         type=pathlib.Path,

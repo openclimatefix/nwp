@@ -33,13 +33,13 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
         var_2d_list = GLOBAL_VAR2D_LIST
         invariant = GLOBAL_INVARIENT_LIST
         pressure_levels = GLOBAL_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 123, 3)) # 5 days
+        f_steps = list(range(0, 79)) + list(range(81, 123, 3))  # 5 days
     for run in runs:
         run_folder = os.path.join(parent_folder, run)
         if not os.path.exists(run_folder):
@@ -69,7 +69,12 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
 
 
 def process_model_files(
-    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00"
+    folder,
+    var_3d_list=None,
+    var_2d_list=None,
+    invariant_list=None,
+    model="global",
+    run="00",
 ):
     if model == "global":
         var_base = "icon_global_icosahedral"
@@ -87,7 +92,7 @@ def process_model_files(
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST

@@ -250,7 +250,7 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--run",
-    default="00",
+    default=None,
     help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
 @click.option(
@@ -276,8 +276,8 @@ def main(model: str, folder: str, run: str, delete: bool, token: str, timedelta:
         run = [run]
     elif run is None:
         run = [
-            "12",
-            "18",
+            "00",
+            "06",
             "12",
             "18",
         ]

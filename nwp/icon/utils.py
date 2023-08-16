@@ -1,14 +1,14 @@
 """Utilities for downloading the DWD ICON models"""
 import bz2
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
 
 import requests
 
 
-def get_run(run: str):
+def get_run(run: str, delay: int = 0):
     """
     Get run name
 
@@ -18,7 +18,7 @@ def get_run(run: str):
     Returns:
         Run date and run number
     """
-    now = datetime.now()
+    now = datetime.now() - timedelta(days=delay)
     return now.strftime("%Y%m%d") + run, run
 
 
@@ -31,6 +31,7 @@ def find_file_name(
     model_url="icon/grib",
     var_url_base="icon_global_icosahedral",
     run="00",
+    delay=0,
 ):
     """Find file names to be downloaded given input variables and
     a forecast lead time f_time (in hours).
@@ -43,7 +44,7 @@ def find_file_name(
     to the download_extract_files function if the file does not
     exist it will simply not be downloaded.
     """
-    date_string, run_string = get_run(run)
+    date_string, run_string = get_run(run, delay=delay)
     if type(f_times) is not list:
         f_times = [f_times]
     if (vars_2d is None) and (vars_3d is None):
@@ -124,6 +125,7 @@ def download_extract_url(url_and_folder):
     else:
         r = requests.get(url, stream=True)
         if r.status_code == requests.codes.ok:
+            #print(f"Downloading {url_and_folder[0]}")
             with r.raw as source, open(filename, "wb") as dest:
                 dest.write(bz2.decompress(source.read()))
             extracted_files = filename
@@ -141,9 +143,11 @@ def get_dset(
     run="00",
     folder="/mnt/storage_ssd_4tb/DWD/",
     model="global",
+    delay=0,
 ):
     if vars_2d or vars_3d:
-        date_string, _ = get_run(run)
+        date_string, _ = get_run(run, delay=delay)
+        print(f"Downloading ICON {model=} model for {date_string=}")
         urls = find_file_name(
             vars_2d=vars_2d,
             vars_3d=vars_3d,
@@ -154,7 +158,9 @@ def get_dset(
             if model == "global"
             else "icon-eu_europe_regular-lat-lon",
             run=run,
+            delay=delay,
         )
+        print(f"Found {len(urls)} files to download")
         downloaded_files = download_extract_files(urls, folder)
 
     return downloaded_files

@@ -17,10 +17,10 @@ from nwp.icon.consts import (
     GLOBAL_VAR2D_LIST,
     GLOBAL_VAR3D_LIST,
 )
-from nwp.icon.utils import get_dset
+from nwp.icon.utils import get_dset, get_run
 
 
-def download_model_files(runs=None, parent_folder=None, model="global"):
+def download_model_files(runs=None, parent_folder=None, model="global", delay=0):
     if runs is None:
         runs = [
             "00",
@@ -61,6 +61,7 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
                     run=run,
                     f_times=f_steps,
                     model=model,
+                    delay=delay
                 )
                 not_done = False
             except Exception as e:
@@ -69,19 +70,20 @@ def download_model_files(runs=None, parent_folder=None, model="global"):
 
 
 def process_model_files(
-    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00"
+    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00", delay=0
 ):
+    date_string, _ = get_run(run, delay=delay)
     if model == "global":
         var_base = "icon_global_icosahedral"
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLON.grib2")))[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLON.grib2")))[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lat_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_*_CLAT.grib2")))[0],
+            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLAT.grib2")))[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
@@ -104,7 +106,7 @@ def process_model_files(
                     os.path.join(
                         folder,
                         run,
-                        f"{var_base}_pressure-level_*_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
+                        f"{var_base}_pressure-level_{date_string}_{str(s).zfill(3)}_*_{var_3d.upper()}.grib2",
                     )
                 )
             )
@@ -143,7 +145,7 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(folder, run, f"{var_base}_single-level_*_*_{var_2d.upper()}.grib2"),
+                os.path.join(folder, run, f"{var_base}_single-level_{date_string}_*_{var_2d.upper()}.grib2"),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
@@ -243,12 +245,12 @@ def remove_files(folder: str) -> None:
 )
 @click.option(
     "--folder",
-    default=("/run/media/jacob/data/DWD/"),
+    default=("/run/media/jacob/data/DWD_Global/"),
     help="Folder to put the raw and zarr in",
 )
 @click.option(
     "--run",
-    default="12",
+    default="00",
     help=("Run number to use, one of '00', '06', '12', '18', or leave off for all."),
 )
 @click.option(
@@ -262,15 +264,20 @@ def remove_files(folder: str) -> None:
     default=None,
     help=("HuggingFace Token"),
 )
-def main(model: str, folder: str, run: str, delete: bool, token: str):
+@click.option(
+    "--timedelta",
+    default=0,
+    help=("Timedelta in days to get older data (either 1 day delay for yesterday, or 0 for today)"),
+)
+def main(model: str, folder: str, run: str, delete: bool, token: str, timedelta: int):
     """The entry point into the script."""
     assert model in ["global", "eu"]
     if run is not None:
         run = [run]
     elif run is None:
         run = [
-            "00",
-            "06",
+            "12",
+            "18",
             "12",
             "18",
         ]
@@ -281,10 +288,10 @@ def main(model: str, folder: str, run: str, delete: bool, token: str):
     print(f"------------------- Downloading Model Files for: {model=} {run=}")
     if not os.path.exists(folder):
         os.mkdir(folder)
-    download_model_files(runs=run, parent_folder=folder, model=model)
+    download_model_files(runs=run, parent_folder=folder, model=model, delay=timedelta)
     for r in run:
         print(f"--------------------- Processing Model Files For {model=} {r}")
-        ds = process_model_files(folder=folder, model=model, run=r)
+        ds = process_model_files(folder=folder, model=model, run=r, delay=timedelta)
         if ds is not None:
             print(f"--------------------- Uploading to HuggingFace Run: {model=} {r}")
             upload_to_hf(ds, folder=folder, model=model, run=r, token=token)

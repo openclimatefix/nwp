@@ -5,10 +5,11 @@ import tempfile
 import zipfile
 import click
 
+
 @click.command()
-@click.argument('path', type=click.Path(exists=True))
-@click.argument('year', type=str)
-@click.argument('output', type=click.Path(),metavar='Output Directory')
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("year", type=str)
+@click.argument("output", type=click.Path(), metavar="Output Directory")
 def ecmwf_merge(path, year, output):
     """
     Merge multiple ECMWF datasets into a single dataset.
@@ -25,12 +26,16 @@ def ecmwf_merge(path, year, output):
     Example:
         $ python process_raw_ecmwf.py /path/to/datasets 2021 /path/to/output/
     """
-    zarr_files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".zarr.zip") & file.startswith(f"{year}")]
+    zarr_files = [
+        os.path.join(path, file)
+        for file in os.listdir(path)
+        if file.endswith(".zarr.zip") & file.startswith(f"{year}")
+    ]
     datasets = [xr.open_zarr(file) for file in zarr_files]
 
     # Convert all of the values in the `variable` variable to `str` before merging the datasets.
     for dataset in datasets:
-        dataset['variable'] = dataset['variable'].astype(str)
+        dataset["variable"] = dataset["variable"].astype(str)
 
     print("Merging data")
     merged_ds = xr.concat(datasets, dim="init_time")
@@ -40,12 +45,13 @@ def ecmwf_merge(path, year, output):
     output = str(os.path.join(output, year + ".zarr"))
     print(output)
 
-    merged_ds['latitude'] = merged_ds['latitude'].astype(float)
-    merged_ds['longitude'] = merged_ds['longitude'].astype(float)
+    merged_ds["latitude"] = merged_ds["latitude"].astype(float)
+    merged_ds["longitude"] = merged_ds["longitude"].astype(float)
 
-    merged_ds.to_zarr(output,mode="w")
+    merged_ds.to_zarr(output, mode="w")
     print(f"Saved Zarr to {output}")
     return merged_ds
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     ecmwf_merge()

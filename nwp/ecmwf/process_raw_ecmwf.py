@@ -1,9 +1,7 @@
-import xarray as xr
-import ocf_blosc2
 import os
-import tempfile
-import zipfile
+
 import click
+import xarray as xr
 
 
 @click.command()

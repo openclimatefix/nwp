@@ -125,7 +125,7 @@ def download_extract_url(url_and_folder):
     else:
         r = requests.get(url, stream=True)
         if r.status_code == requests.codes.ok:
-            #print(f"Downloading {url_and_folder[0]}")
+            # print(f"Downloading {url_and_folder[0]}")
             with r.raw as source, open(filename, "wb") as dest:
                 dest.write(bz2.decompress(source.read()))
             extracted_files = filename

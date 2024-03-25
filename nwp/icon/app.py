@@ -33,13 +33,13 @@ def download_model_files(runs=None, parent_folder=None, model="global", delay=0)
         var_2d_list = GLOBAL_VAR2D_LIST
         invariant = GLOBAL_INVARIENT_LIST
         pressure_levels = GLOBAL_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_3d_list = EU_VAR3D_LIST
         var_2d_list = EU_VAR2D_LIST
         invariant = None
         pressure_levels = EU_PRESSURE_LEVELS
-        f_steps = list(range(0, 79)) + list(range(81, 123, 3)) # 5 days
+        f_steps = list(range(0, 79)) + list(range(81, 123, 3))  # 5 days
     for run in runs:
         run_folder = os.path.join(parent_folder, run)
         if not os.path.exists(run_folder):
@@ -61,7 +61,7 @@ def download_model_files(runs=None, parent_folder=None, model="global", delay=0)
                     run=run,
                     f_times=f_steps,
                     model=model,
-                    delay=delay
+                    delay=delay,
                 )
                 not_done = False
             except Exception as e:
@@ -70,7 +70,13 @@ def download_model_files(runs=None, parent_folder=None, model="global", delay=0)
 
 
 def process_model_files(
-    folder, var_3d_list=None, var_2d_list=None, invariant_list=None, model="global", run="00", delay=0
+    folder,
+    var_3d_list=None,
+    var_2d_list=None,
+    invariant_list=None,
+    model="global",
+    run="00",
+    delay=0,
 ):
     date_string, _ = get_run(run, delay=delay)
     if model == "global":
@@ -78,18 +84,26 @@ def process_model_files(
         var_3d_list = GLOBAL_VAR3D_LIST
         var_2d_list = GLOBAL_VAR2D_LIST
         lon_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLON.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLON.grib2")
+                )
+            )[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lat_ds = xr.open_dataset(
-            list(glob(os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLAT.grib2")))[0],
+            list(
+                glob(
+                    os.path.join(folder, run, f"{var_base}_time-invariant_{date_string}_CLAT.grib2")
+                )
+            )[0],
             engine="cfgrib",
             backend_kwargs={"errors": "ignore"},
         )
         lons = lon_ds.tlon.values
         lats = lat_ds.tlat.values
-        f_steps = list(range(0, 79)) + list(range(81, 99, 3)) # 4 days
+        f_steps = list(range(0, 79)) + list(range(81, 99, 3))  # 4 days
     else:
         var_base = "icon-eu_europe_regular-lat-lon"
         var_3d_list = EU_VAR3D_LIST
@@ -145,7 +159,9 @@ def process_model_files(
         print(var_2d)
         try:
             ds = xr.open_mfdataset(
-                os.path.join(folder, run, f"{var_base}_single-level_{date_string}_*_{var_2d.upper()}.grib2"),
+                os.path.join(
+                    folder, run, f"{var_base}_single-level_{date_string}_*_{var_2d.upper()}.grib2"
+                ),
                 engine="cfgrib",
                 combine="nested",
                 concat_dim="step",
@@ -207,9 +223,11 @@ def upload_to_hf(dataset_xr, folder, model="global", run="00", token=None):
                 f"{dataset_xr.time.dt.day.values}/"
                 f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
                 f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
-                repo_id="openclimatefix/dwd-icon-global"
-                if model == "global"
-                else "openclimatefix/dwd-icon-eu",
+                repo_id=(
+                    "openclimatefix/dwd-icon-global"
+                    if model == "global"
+                    else "openclimatefix/dwd-icon-eu"
+                ),
                 repo_type="dataset",
             )
             done = True

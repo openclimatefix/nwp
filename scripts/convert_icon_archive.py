@@ -23,6 +23,7 @@ import subprocess
 from pathlib import Path
 import multiprocessing as mp
 
+
 def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     """
     Decompresses .bz2 file and returns the non-compressed filename
@@ -38,7 +39,7 @@ def decompress(full_bzip_filename: Path, temp_pth: Path) -> str:
     base_nat_filename = os.path.splitext(base_bzip_filename)[0]
     full_nat_filename = os.path.join(temp_pth, base_nat_filename)
     if os.path.exists(full_nat_filename):
-        return full_nat_filename # Don't decompress a second time
+        return full_nat_filename  # Don't decompress a second time
     with open(full_nat_filename, "wb") as nat_file_handler:
         process = subprocess.run(
             ["pbzip2", "--decompress", "--keep", "--stdout", full_bzip_filename],
@@ -179,8 +180,8 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
     encoding = {var: {"compressor": Blosc2("zstd", clevel=9)} for var in dataset_xr.data_vars}
     encoding["time"] = {"units": "nanoseconds since 1970-01-01"}
     with zarr.ZipStore(
-            zarr_path,
-            mode="w",
+        zarr_path,
+        mode="w",
     ) as store:
         dataset_xr.chunk(chunking).to_zarr(store, encoding=encoding, compute=True)
     done = False
@@ -189,13 +190,15 @@ def upload_to_hf(dataset_xr, folder, model="eu", run="00", token=None):
             api.upload_file(
                 path_or_fileobj=zarr_path,
                 path_in_repo=f"data/{dataset_xr.time.dt.year.values}/"
-                             f"{dataset_xr.time.dt.month.values}/"
-                             f"{dataset_xr.time.dt.day.values}/"
-                             f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
-                             f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
-                repo_id="openclimatefix/dwd-icon-global"
-                if model == "global"
-                else "openclimatefix/dwd-icon-eu",
+                f"{dataset_xr.time.dt.month.values}/"
+                f"{dataset_xr.time.dt.day.values}/"
+                f"{dataset_xr.time.dt.year.values}{str(dataset_xr.time.dt.month.values).zfill(2)}{str(dataset_xr.time.dt.day.values).zfill(2)}"
+                f"_{str(dataset_xr.time.dt.hour.values).zfill(2)}.zarr.zip",
+                repo_id=(
+                    "openclimatefix/dwd-icon-global"
+                    if model == "global"
+                    else "openclimatefix/dwd-icon-eu"
+                ),
                 repo_type="dataset",
             )
             done = True

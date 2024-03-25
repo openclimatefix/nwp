@@ -1,4 +1,5 @@
 """Utilities for downloading the DWD ICON models"""
+
 import bz2
 import os
 from datetime import datetime, timedelta
@@ -125,7 +126,7 @@ def download_extract_url(url_and_folder):
     else:
         r = requests.get(url, stream=True)
         if r.status_code == requests.codes.ok:
-            #print(f"Downloading {url_and_folder[0]}")
+            # print(f"Downloading {url_and_folder[0]}")
             with r.raw as source, open(filename, "wb") as dest:
                 dest.write(bz2.decompress(source.read()))
             extracted_files = filename
@@ -154,9 +155,9 @@ def get_dset(
             invarient=invarient,
             f_times=f_times,
             model_url="icon/grib" if model == "global" else "icon-eu/grib",
-            var_url_base="icon_global_icosahedral"
-            if model == "global"
-            else "icon-eu_europe_regular-lat-lon",
+            var_url_base=(
+                "icon_global_icosahedral" if model == "global" else "icon-eu_europe_regular-lat-lon"
+            ),
             run=run,
             delay=delay,
         )
